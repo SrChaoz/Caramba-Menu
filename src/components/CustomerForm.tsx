@@ -9,7 +9,7 @@ interface Props {
 export default function CustomerForm({ onNext }: Props) {
   const { customer, setCustomer } = useCartStore();
 
-  const isValid = customer.name.trim() !== '' && customer.address.trim() !== '' && customer.deliveryDay !== '';
+  const isValid = customer.name.trim() !== '' && customer.address.trim() !== '' && customer.phone.trim() !== '' && customer.deliveryDay !== '';
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in">
@@ -25,7 +25,7 @@ export default function CustomerForm({ onNext }: Props) {
           <input
             type="text"
             className="input-field"
-            placeholder="Nombre"
+            placeholder="Ej: Nombre Apellido"
             value={customer.name}
             onChange={(e) => setCustomer({ name: e.target.value })}
           />
@@ -38,9 +38,22 @@ export default function CustomerForm({ onNext }: Props) {
           <input
             type="text"
             className="input-field"
-            placeholder="Dirección"
+            placeholder="Ej: Av. Principal y Secundaria"
             value={customer.address}
             onChange={(e) => setCustomer({ address: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="text-caramba-muted text-sm font-bold uppercase mb-2 block tracking-wider">
+            Teléfono
+          </label>
+          <input
+            type="tel"
+            className="input-field"
+            placeholder="Ej: 0987654321"
+            value={customer.phone}
+            onChange={(e) => setCustomer({ phone: e.target.value })}
           />
         </div>
 
@@ -54,11 +67,10 @@ export default function CustomerForm({ onNext }: Props) {
               <button
                 key={day}
                 onClick={() => setCustomer({ deliveryDay: day })}
-                className={`w-full py-4 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${
-                  customer.deliveryDay === day
+                className={`w-full py-4 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${customer.deliveryDay === day
                     ? 'bg-caramba-red text-white shadow-[0_0_15px_rgba(192,0,12,0.4)] scale-100'
                     : 'bg-caramba-bg border-2 border-caramba-border text-caramba-muted hover:border-caramba-red/50 hover:text-white'
-                }`}
+                  }`}
               >
                 {day}
               </button>

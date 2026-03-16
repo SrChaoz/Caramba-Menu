@@ -16,6 +16,7 @@ export type DeliveryDay = 'Viernes' | 'Sábado' | 'Domingo' | '';
 export interface CustomerInfo {
   name: string;
   address: string;
+  phone: string;
   deliveryDay: DeliveryDay;
 }
 

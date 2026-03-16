@@ -30,7 +30,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   quantity: 1,
   mode: 'same',
   burritos: [emptyBurrito(0)],
-  customer: { name: '', address: '', deliveryDay: '' },
+  customer: { name: '', address: '', phone: '', deliveryDay: '' },
   total: BASE_PRICE,
 
   setQuantity: (qty) => set({
@@ -68,7 +68,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   resetCart: () => set({
     quantity: 1, mode: 'same',
     burritos: [emptyBurrito(0)],
-    customer: { name: '', address: '', deliveryDay: '' },
+    customer: { name: '', address: '', phone: '', deliveryDay: '' },
     total: BASE_PRICE,
   }),
 }));

@@ -1,7 +1,7 @@
 import { useCartStore } from '@/store/cartStore';
 import { buildWhatsAppURL } from '@/lib/whatsapp';
 import { TOPPINGS } from '@/config/menu';
-import { Receipt, User, MapPin, Package, ArrowLeft, Calendar } from 'lucide-react';
+import { Receipt, User, MapPin, Package, ArrowLeft, Calendar, Phone } from 'lucide-react';
 
 interface Props {
   onBack: () => void;
@@ -40,6 +40,9 @@ export default function OrderSummary({ onBack }: Props) {
           </div>
           <div className="flex items-center gap-3 text-caramba-muted text-sm font-medium">
             <MapPin className="w-6 h-6" /> {customer.address}
+          </div>
+          <div className="flex items-center gap-3 text-caramba-muted text-sm font-medium">
+            <Phone className="w-6 h-6" /> {customer.phone}
           </div>
           <div className="flex items-center gap-3 text-caramba-red text-sm font-black uppercase mt-1">
             <Calendar className="w-6 h-6" /> Entrega: {customer.deliveryDay} (19:00 - 20:00)
