@@ -10,8 +10,21 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'CARAMBA | Web Order',
-  description: 'Burritos a tu manera',
-  manifest: '/manifest.json', // Although not strictly requested, it's a PWA
+  description: 'Arma tus burritos a tu manera de forma rápida y sencilla.',
+  manifest: '/manifest.json',
+  openGraph: {
+    title: 'CARAMBA | Web Order',
+    description: 'Arma tus burritos a tu manera de forma rápida y sencilla.',
+    url: 'https://caramba-menu.vercel.app',
+    siteName: 'CARAMBA',
+    locale: 'es_EC',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CARAMBA | Web Order',
+    description: 'Arma tus burritos a tu manera de forma rápida y sencilla.',
+  },
 };
 
 export const viewport: Viewport = {
