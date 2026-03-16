@@ -1,0 +1,10 @@
+{
+  "name": "CARAMBA Web Order",
+  "short_name": "CARAMBA",
+  "description": "Burritos a tu manera",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111113",
+  "theme_color": "#111113",
+  "icons": []
+}

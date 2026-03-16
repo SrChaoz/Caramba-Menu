@@ -1,4 +1,5 @@
 import { useCartStore } from '@/store/cartStore';
+import { ArrowRight } from 'lucide-react';
 
 interface Props {
   onNext: () => void;
@@ -41,8 +42,8 @@ export default function StepQty({ onNext }: Props) {
         </button>
       </div>
 
-      <button onClick={onNext} className="btn-primary mt-6 text-lg py-5">
-        SIGUIENTE →
+      <button onClick={onNext} className="btn-primary mt-6 text-lg py-5 flex items-center justify-center gap-2">
+        SIGUIENTE <ArrowRight className="w-5 h-5" />
       </button>
     </div>
   );

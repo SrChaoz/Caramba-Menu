@@ -1,4 +1,5 @@
 import { useCartStore } from '@/store/cartStore';
+import { ClipboardList, Truck, ArrowRight } from 'lucide-react';
 
 interface Props {
   onNext: () => void;
@@ -11,8 +12,8 @@ export default function CustomerForm({ onNext }: Props) {
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in">
-      <h2 className="text-2xl font-black uppercase tracking-wider text-white">
-        Datos de entrega 📋
+      <h2 className="text-2xl font-black uppercase tracking-wider text-white flex items-center gap-2">
+        Datos de entrega <ClipboardList className="w-6 h-6" />
       </h2>
 
       <div className="flex flex-col gap-5">
@@ -44,11 +45,11 @@ export default function CustomerForm({ onNext }: Props) {
       </div>
 
       <div className="flex items-center gap-3 text-[#2EBA5B] font-bold bg-[#2EBA5B]/10 p-4 rounded-xl border border-[#2EBA5B]/20 mt-2">
-        <span className="text-2xl">🚚</span> Envío GRATIS
+        <Truck className="w-6 h-6" /> Envío GRATIS
       </div>
 
-      <button onClick={onNext} disabled={!isValid} className="btn-primary mt-6 text-lg py-5">
-        VER RESUMEN →
+      <button onClick={onNext} disabled={!isValid} className="btn-primary mt-6 text-lg py-5 flex items-center justify-center gap-2">
+        VER RESUMEN <ArrowRight className="w-5 h-5" />
       </button>
     </div>
   );

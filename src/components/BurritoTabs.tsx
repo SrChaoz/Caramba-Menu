@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { MIN_TOPPINGS } from '@/config/menu';
 import ToppingSelector from './ToppingSelector';
+import { CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface Props {
   onNext: () => void;
@@ -31,7 +32,7 @@ export default function BurritoTabs({ onNext }: Props) {
                 }`}
             >
               Burrito {idx + 1}
-              {isValid && <span className="text-sm">✅</span>}
+              {isValid && <CheckCircle2 className="w-4 h-4" />}
             </button>
           );
         })}
@@ -56,9 +57,11 @@ export default function BurritoTabs({ onNext }: Props) {
           <button 
             onClick={onNext} 
             disabled={!allValid}
-            className="btn-primary"
+            className="btn-primary flex items-center justify-center gap-2 w-full"
           >
-            {allValid ? 'CONTINUAR →' : 'COMPLETA TODOS LOS BURRITOS'}
+            {allValid ? (
+              <>CONTINUAR <ArrowRight className="w-5 h-5" /></>
+            ) : 'COMPLETA TODOS LOS BURRITOS'}
           </button>
         </div>
       </div>

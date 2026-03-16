@@ -13,18 +13,19 @@ export const MENU_CONFIG = {
   },
   validation: {
     minToppings: 5,           // REGLA CRÍTICA: mínimo 5 toppings por burrito
-    maxToppings: 10,          // máximo = total de toppings disponibles
+    maxToppings: 11,          // máximo = total de toppings disponibles
   },
   toppings: [
-    { id: 'pollo-mechado', label: 'Pollo Mechado',   emoji: '🍗' },
+    { id: 'pollo',         label: 'Pollo',           emoji: '🍗' },
     { id: 'arroz-amarillo',label: 'Arroz Amarillo',  emoji: '🍚' },
-    { id: 'guacamole',     label: 'Guacamole',       emoji: '🥑' },
     { id: 'frejol-negro',  label: 'Frejol Negro',    emoji: '⚫' },
-    { id: 'pico-de-gallo', label: 'Pico de Gallo',   emoji: '🍅' },
-    { id: 'choclo-dulce',  label: 'Choclo Dulce',    emoji: '🌽' },
-    { id: 'queso-rallado', label: 'Queso Rallado',   emoji: '🧀' },
-    { id: 'crema-agria',   label: 'Crema Agria',     emoji: '🥛' },
+    { id: 'frejol-rojo',   label: 'Frejol Rojo',     emoji: '🔴' },
+    { id: 'guacamole',     label: 'Guacamole',       emoji: '🥑' },
     { id: 'salsa-roja-hot',label: 'Salsa Roja Hot',  emoji: '🌶️' },
+    { id: 'crema-agria',   label: 'Crema Agria',     emoji: '🥛' },
+    { id: 'pico-de-gallo', label: 'Pico de Gallo',   emoji: '🍅' },
+    { id: 'cebolla',       label: 'Cebolla',         emoji: '🧅' },
+    { id: 'cilantro',      label: 'Cilantro',        emoji: '🌿' },
     { id: 'limon',         label: 'Limón',           emoji: '🍋' },
   ] as Topping[],
   whatsapp: {

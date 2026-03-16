@@ -28,7 +28,7 @@ const emptyBurrito = (id: number): BurritoConfig => ({
 
 export const useCartStore = create<CartState>((set, get) => ({
   quantity: 1,
-  mode: null,
+  mode: 'same',
   burritos: [emptyBurrito(0)],
   customer: { name: '', address: '' },
   total: BASE_PRICE,
@@ -66,7 +66,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     set(s => ({ customer: { ...s.customer, ...info } })),
 
   resetCart: () => set({
-    quantity: 1, mode: null,
+    quantity: 1, mode: 'same',
     burritos: [emptyBurrito(0)],
     customer: { name: '', address: '' },
     total: BASE_PRICE,

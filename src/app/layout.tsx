@@ -21,12 +21,13 @@ export const viewport: Viewport = {
   userScalable: false, // For mobile app feel
 };
 
+import Image from 'next/image';
+
 function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 h-[72px] header-checkered bg-caramba-bg z-40 border-b-2 border-caramba-border flex flex-col items-center justify-center">
-      <div className="flex items-center gap-2">
-        <h1 className="text-white font-black text-3xl italic tracking-tighter mix-blend-plus-lighter">CARAMBA</h1>
-        <span className="text-2xl pt-1">🌯</span>
+    <header className="fixed top-0 left-0 right-0 h-[72px] bg-caramba-surface z-40 border-b-2 border-caramba-border flex flex-col items-center justify-center shadow-lg">
+      <div className="flex items-center justify-center w-full">
+        <Image src="/logo-fw.png" alt="Caramba Logo" width={220} height={56} className="h-14 w-auto object-contain" priority />
       </div>
     </header>
   );

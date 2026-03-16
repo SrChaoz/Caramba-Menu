@@ -9,6 +9,7 @@ import BurritoTabs from '@/components/BurritoTabs';
 import CustomerForm from '@/components/CustomerForm';
 import OrderSummary from '@/components/OrderSummary';
 import { MIN_TOPPINGS } from '@/config/menu';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -34,10 +35,27 @@ export default function Home() {
     setStep(5);
   };
 
+  const handleBack = () => {
+    if (step === 3 && quantity === 1) {
+      setStep(1); // Skip mode selection if qty is 1
+    } else if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
   return (
     <main className="min-h-screen pt-24 pb-12 px-4 max-w-md mx-auto">
       {/* Progress dots */}
-      <div className="flex justify-center gap-2 mb-8">
+      <div className="flex justify-center gap-2 mb-8 relative">
+        {step > 1 && (
+          <button 
+            onClick={handleBack} 
+            className="absolute left-0 top-1/2 -translate-y-1/2 text-caramba-muted hover:text-white transition-colors p-2 -ml-2 rounded-full active:bg-white/10 flex items-center justify-center"
+            aria-label="Volver"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        )}
         {[1, 3, 4, 5].map((s) => {
           // Visual steps map to logical steps
           const isActive = s === step || (s === 3 && step === 2);
@@ -58,7 +76,7 @@ export default function Home() {
       <div className="flex flex-col gap-6 relative">
         {step === 1 && <StepQty onNext={handleNextFromQty} />}
         
-        {step === 2 && <StepMode onConfirm={handleConfirmMode} />}
+        {step === 2 && <StepMode onConfirm={handleConfirmMode} onBack={handleBack} />}
         
         {step === 3 && mode === 'same' && (
           <div className="animate-fade-in flex flex-col items-center">
@@ -72,9 +90,11 @@ export default function Home() {
               <button 
                 onClick={handleNextFromToppings}
                 disabled={burritos[0].selectedToppings.length < MIN_TOPPINGS} 
-                className="btn-primary text-lg py-5 shadow-lg shadow-black/50"
+                className="btn-primary text-lg py-5 shadow-lg shadow-black/50 flex items-center justify-center gap-2 w-full"
               >
-                {burritos[0].selectedToppings.length >= MIN_TOPPINGS ? 'CONTINUAR →' : `SELECCIONA ${MIN_TOPPINGS} TOPPINGS`}
+                {burritos[0].selectedToppings.length >= MIN_TOPPINGS ? (
+                  <>CONTINUAR <ArrowRight className="w-5 h-5" /></>
+                ) : `SELECCIONA ${MIN_TOPPINGS} TOPPINGS`}
               </button>
             </div>
           </div>
@@ -86,7 +106,7 @@ export default function Home() {
 
         {step === 4 && <CustomerForm onNext={handleNextFromCustomer} />}
         
-        {step === 5 && <OrderSummary />}
+        {step === 5 && <OrderSummary onBack={handleBack} />}
       </div>
     </main>
   );

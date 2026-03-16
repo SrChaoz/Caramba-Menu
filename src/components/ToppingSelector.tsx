@@ -1,4 +1,5 @@
 import { TOPPINGS, MIN_TOPPINGS } from '@/config/menu';
+import { AlertTriangle } from 'lucide-react';
 
 interface Props {
   burritoId: number;
@@ -45,8 +46,8 @@ export default function ToppingSelector({ burritoId, selectedToppings, onToggle 
       </div>
 
       {!isValid && (
-        <p className="text-caramba-red text-sm font-bold bg-caramba-red/10 p-3 rounded-lg border border-caramba-red/20 text-center">
-          ⚠ Faltan {MIN_TOPPINGS - selectedToppings.length} ingredientes para confirmar
+        <p className="text-caramba-red text-sm font-bold bg-caramba-red/10 p-3 rounded-lg border border-caramba-red/20 flex items-center justify-center gap-2">
+          <AlertTriangle className="w-5 h-5" /> Faltan {MIN_TOPPINGS - selectedToppings.length} ingredientes para confirmar
         </p>
       )}
     </div>
