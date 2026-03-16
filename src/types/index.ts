@@ -9,10 +9,14 @@ export interface BurritoConfig {
 // Modo de configuración cuando qty > 1
 export type BurritoMode = 'same' | 'individual';
 
+// Tipos permitidos para días de entrega
+export type DeliveryDay = 'Viernes' | 'Sábado' | 'Domingo' | '';
+
 // Información del cliente
 export interface CustomerInfo {
   name: string;
   address: string;
+  deliveryDay: DeliveryDay;
 }
 
 // Payload completo para buildWhatsAppURL

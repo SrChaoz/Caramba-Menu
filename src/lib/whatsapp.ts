@@ -21,6 +21,7 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
   const message = [
     '¡Hola CARAMBA! 🌯 Quiero realizar un pedido.',
     '',
+    `🗓️ Para entregar el: *${customer.deliveryDay?.toUpperCase() || 'FIN DE SEMANA'}* (7:00pm - 8:00pm)`,
     `👤 Nombre: ${customer.name}`,
     `📍 Dirección: ${customer.address}`,
     `📦 Cantidad: ${qtyLabel}`,
