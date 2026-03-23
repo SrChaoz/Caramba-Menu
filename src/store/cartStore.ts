@@ -1,18 +1,13 @@
 import { create } from 'zustand';
 import { BurritoConfig, BurritoMode, CustomerInfo } from '@/types';
-import { BASE_PRICE, MENU_CONFIG } from '@/config/menu';
+import { BASE_PRICE, MENU_CONFIG, calculateExtras, FREE_TOPPINGS_LIMIT } from '@/config/menu';
 
 interface CartState {
-  // ── Estado del pedido ──────────────────────────────────────────
   quantity: number;
-  mode: BurritoMode | null;      // null = aún no elegido
+  mode: BurritoMode | null;     
   burritos: BurritoConfig[];
   customer: CustomerInfo;
-
-  // ── Computed (derivado) ────────────────────────────────────────
   total: number;
-
-  // ── Acciones ──────────────────────────────────────────────────
   setQuantity: (qty: number) => void;
   setMode: (mode: BurritoMode) => void;
   toggleTopping: (burritoId: number, toppingId: string) => void;
@@ -20,7 +15,6 @@ interface CartState {
   resetCart: () => void;
 }
 
-// Crea un BurritoConfig vacío para el índice dado
 const emptyBurrito = (id: number): BurritoConfig => ({
   id,
   selectedToppings: [],
@@ -37,43 +31,44 @@ export const useCartStore = create<CartState>((set, get) => ({
     quantity: qty,
     total: qty * BASE_PRICE,
     burritos: Array.from({ length: qty }, (_, i) => emptyBurrito(i)),
-    mode: qty === 1 ? 'same' : null,  // qty=1 no necesita preguntar el modo
+    mode: qty === 1 ? 'same' : null,
   }),
 
   setMode: (mode) => set({ mode }),
 
   toggleTopping: (burritoId, toppingId) => {
-    const { burritos, mode } = get();
-    // Encuentra la configuración del topping que estamos intentando agregar
+    const { burritos, mode, quantity } = get();
     const toppingConfig = MENU_CONFIG.toppings.find(t => t.id === toppingId);
 
-    const updated = burritos.map(b => {
-      // En modo 'same', actualiza TODOS los burritos simultáneamente
+    let updated = burritos.map(b => {
       if (mode === 'same' || b.id === burritoId) {
         const has = b.selectedToppings.includes(toppingId);
-        
         let newSelected = [...b.selectedToppings];
 
         if (has) {
-          // Si ya lo tiene, simplemente lo quita
+          // Si ya lo tiene, se quita
           newSelected = newSelected.filter(t => t !== toppingId);
         } else {
-          // Si va a agregarlo, se procesan reglas de exclusividad primero
+          // Si va a agregarlo, evaluamos exclusividad
           if (toppingConfig?.exclusiveGroup) {
-            // Elimina cualquier topping que pertenezca al mismo exclusiveGroup
-            const exclusiveIds = MENU_CONFIG.toppings
-              .filter(t => t.exclusiveGroup === toppingConfig.exclusiveGroup)
-              .map(t => t.id);
-            newSelected = newSelected.filter(t => !exclusiveIds.includes(t));
+            const isRice = toppingConfig.exclusiveGroup === 'arroz';
+            const isMeat = toppingConfig.exclusiveGroup === 'meat';
+            
+            // Se permite una segunda carne SÓLO si con ella se exceden los toppings gratuitos (Es decir, ya se vuelve un extra)
+            // o si el usuario quiere reemplazarla. Para simplificar la UX: Si ya llegó a 8 toppings, le liberamos la restricción de carne.
+            const allowExtraMeat = isMeat && newSelected.length >= FREE_TOPPINGS_LIMIT;
+
+            if (isRice || (isMeat && !allowExtraMeat)) {
+              // Eliminar el topping previo excluyente
+              const exclusiveIds = MENU_CONFIG.toppings
+                .filter(t => t.exclusiveGroup === toppingConfig.exclusiveGroup)
+                .map(t => t.id);
+              newSelected = newSelected.filter(t => !exclusiveIds.includes(t));
+            }
           }
           
-          // Luego, verificar si alcanzó el máximo permitido
-          if (newSelected.length < MENU_CONFIG.validation.maxToppings) {
-            newSelected.push(toppingId);
-          } else {
-            // Si ya alcanzó el máximo, ignorar el toggle para agregar (no hacer push)
-            return b; // Retorna sin cambios
-          }
+          // Agregamos el topping libremente (Max límite ya no aplica de forma dura)
+          newSelected.push(toppingId);
         }
 
         return { ...b, selectedToppings: newSelected };
@@ -81,7 +76,20 @@ export const useCartStore = create<CartState>((set, get) => ({
       return b;
     });
 
-    set({ burritos: updated });
+    // En modo 'same', aseguramos que todos los burritos sean clones exactos del primero
+    if (mode === 'same') {
+      const template = updated.find(b => b.id === burritoId) || updated[0];
+      updated = updated.map(b => ({ ...b, selectedToppings: [...template.selectedToppings] }));
+    }
+
+    // Calcular el nuevo total sumando los extras
+    let newTotal = 0;
+    updated.forEach(b => {
+      const { extraCost } = calculateExtras(b.selectedToppings);
+      newTotal += BASE_PRICE + extraCost;
+    });
+
+    set({ burritos: updated, total: newTotal });
   },
 
   setCustomer: (info) =>

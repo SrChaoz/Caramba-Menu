@@ -1,6 +1,6 @@
 import { useCartStore } from '@/store/cartStore';
 import { buildWhatsAppURL } from '@/lib/whatsapp';
-import { TOPPINGS, sortToppings } from '@/config/menu';
+import { TOPPINGS, sortToppings, calculateExtras } from '@/config/menu';
 import { Receipt, User, MapPin, Package, ArrowLeft, Calendar, Phone } from 'lucide-react';
 
 interface Props {
@@ -45,22 +45,32 @@ export default function OrderSummary({ onBack }: Props) {
             <Phone className="w-6 h-6" /> {customer.phone}
           </div>
           <div className="flex items-center gap-3 text-caramba-red text-sm font-black uppercase mt-1">
-            <Calendar className="w-6 h-6" /> Entrega: {customer.deliveryDay} (19:00 - 20:00)
+            <Calendar className="w-6 h-6" /> Entrega: {customer.deliveryDay} (19:00 - 21:00)
           </div>
         </div>
 
         {/* Burritos */}
         <div className="flex flex-col gap-5 pb-5 border-b-2 border-caramba-border">
-          {burritos.map((b, i) => (
-            <div key={b.id} className="flex flex-col gap-1.5">
-              <span className="text-caramba-red font-black text-sm uppercase tracking-wider">
-                Burrito {i + 1}
-              </span>
-              <span className="text-caramba-text text-sm leading-relaxed font-medium">
-                {sortToppings(b.selectedToppings).map(resolveLabel).join(', ')}
-              </span>
-            </div>
-          ))}
+          {burritos.map((b, i) => {
+            const { extraCost, extraIds } = calculateExtras(b.selectedToppings);
+            const baseIds = b.selectedToppings.filter(id => !extraIds.includes(id));
+
+            return (
+              <div key={b.id} className="flex flex-col gap-1.5">
+                <span className="text-caramba-red font-black text-sm uppercase tracking-wider">
+                  Burrito {i + 1}
+                </span>
+                <span className="text-caramba-text text-sm leading-relaxed font-medium">
+                  {sortToppings(baseIds).map(resolveLabel).join(', ')}
+                </span>
+                {extraIds.length > 0 && (
+                  <span className="text-[#2EBA5B] text-sm leading-relaxed font-bold mt-0.5">
+                    ✨ Extras (+${extraCost.toFixed(2)}): {sortToppings(extraIds).map(resolveLabel).join(', ')}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Total */}

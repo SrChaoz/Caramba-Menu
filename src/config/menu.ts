@@ -11,44 +11,44 @@ export const TOPPING_CATEGORIES: ToppingCategory[] = [
 ];
 
 export interface Topping {
-  id: string;      // slug único, e.g. 'pollo'
-  categoryId: string; // categoría del topping
-  label: string;   // nombre visible, e.g. 'Pollo'
-  emoji: string;   // emoji representativo
-  exclusiveGroup?: string; // para toppings mutuamente excluyentes (ej: 'arroz')
+  id: string;      
+  categoryId: string; 
+  label: string;   
+  emoji: string;   
+  exclusiveGroup?: string; 
+  price: number; // Precio si se pide como extra
 }
 
 export const MENU_CONFIG = {
   product: {
     name: 'Burrito',
-    basePrice: 3.50,          // USD
+    basePrice: 3.50,          
     currency: 'USD',
     currencySymbol: '$',
   },
   validation: {
-    minToppings: 5,           // Mínimo 5 toppings por burrito
-    maxToppings: 8,           // Máximo 8 toppings en total
+    minToppings: 5,           
+    freeToppings: 8,          // A partir del 9no se cobra como extra
   },
   toppings: [
-    // Base
-    { id: 'arroz-amarillo', categoryId: 'base', exclusiveGroup: 'arroz', label: 'Arroz Amarillo', emoji: '🥘' },
-    { id: 'arroz-verde',    categoryId: 'base', exclusiveGroup: 'arroz', label: 'Arroz Verde',    emoji: '🍚' },
-    { id: 'lechuga',        categoryId: 'base', label: 'Lechuga',         emoji: '🥬' },
+    // Base (Arroz nunca es extra, siempre exclusivo)
+    { id: 'arroz-amarillo', categoryId: 'base', exclusiveGroup: 'arroz', label: 'Arroz Amarillo', emoji: '🥘', price: 0 },
+    { id: 'arroz-verde',    categoryId: 'base', exclusiveGroup: 'arroz', label: 'Arroz Verde',    emoji: '🍚', price: 0 },
+    { id: 'lechuga',        categoryId: 'base', label: 'Lechuga',         emoji: '🥬', price: 0.25 },
     // Proteína
-    { id: 'pollo',          categoryId: 'meat', exclusiveGroup: 'meat', label: 'Pollo',           emoji: '🍗' },
-    { id: 'carne-res',      categoryId: 'meat', exclusiveGroup: 'meat', label: 'Carne de Res',    emoji: '🥩' },
+    { id: 'pollo',          categoryId: 'meat', exclusiveGroup: 'meat', label: 'Pollo',           emoji: '🍗', price: 1.00 },
+    { id: 'carne-res',      categoryId: 'meat', exclusiveGroup: 'meat', label: 'Carne de Res',    emoji: '🥩', price: 1.00 },
     // Adicionales
-    { id: 'frejol-negro',   categoryId: 'regular', label: 'Frejol Negro',    emoji: '⚫' },
-    { id: 'frejol-rojo',    categoryId: 'regular', label: 'Frejol Rojo',     emoji: '🔴' },
-    { id: 'guacamole',      categoryId: 'regular', label: 'Guacamole',       emoji: '🥑' },
-    { id: 'crema-agria',    categoryId: 'regular', label: 'Crema Agria',     emoji: '🥛' },
-    { id: 'salsa-roja-hot', categoryId: 'regular', label: 'Salsa Hot',       emoji: '🌶️' },
-    { id: 'queso',          categoryId: 'regular', label: 'Queso',           emoji: '🧀' },
-    { id: 'choclo',         categoryId: 'regular', label: 'Choclo',          emoji: '🌽' },
-    { id: 'pico-de-gallo',  categoryId: 'regular', label: 'Pico de Gallo',   emoji: '🍅' },
-    { id: 'cebolla',        categoryId: 'regular', label: 'Cebolla',         emoji: '🧅' },
-    { id: 'cilantro',       categoryId: 'regular', label: 'Cilantro',        emoji: '🌿' },
-
+    { id: 'frejol-negro',   categoryId: 'regular', label: 'Frejol Negro',    emoji: '⚫', price: 0.50 },
+    { id: 'frejol-rojo',    categoryId: 'regular', label: 'Frejol Rojo',     emoji: '🔴', price: 0.50 },
+    { id: 'guacamole',      categoryId: 'regular', label: 'Guacamole',       emoji: '🥑', price: 0.50 },
+    { id: 'crema-agria',    categoryId: 'regular', label: 'Crema Agria',     emoji: '🥛', price: 0.50 },
+    { id: 'salsa-roja-hot', categoryId: 'regular', label: 'Salsa Hot',       emoji: '🌶️', price: 0.50 },
+    { id: 'queso',          categoryId: 'regular', label: 'Queso',           emoji: '🧀', price: 0.50 },
+    { id: 'choclo',         categoryId: 'regular', label: 'Choclo',          emoji: '🌽', price: 0.50 },
+    { id: 'pico-de-gallo',  categoryId: 'regular', label: 'Pico de Gallo',   emoji: '🍅', price: 0.50 },
+    { id: 'cebolla',        categoryId: 'regular', label: 'Cebolla',         emoji: '🧅', price: 0.25 },
+    { id: 'cilantro',       categoryId: 'regular', label: 'Cilantro',        emoji: '🌿', price: 0.25 },
   ] as Topping[],
   whatsapp: {
     phone: '593987543310',
@@ -58,7 +58,25 @@ export const MENU_CONFIG = {
 export const TOPPINGS = MENU_CONFIG.toppings;
 export const BASE_PRICE = MENU_CONFIG.product.basePrice;
 export const MIN_TOPPINGS = MENU_CONFIG.validation.minToppings;
-export const MAX_TOPPINGS = MENU_CONFIG.validation.maxToppings;
+export const FREE_TOPPINGS_LIMIT = MENU_CONFIG.validation.freeToppings;
+
+export function calculateExtras(selectedToppingIds: string[]): { extraCost: number, extraIds: string[] } {
+  if (selectedToppingIds.length <= FREE_TOPPINGS_LIMIT) {
+    return { extraCost: 0, extraIds: [] };
+  }
+  
+  const extraIds = selectedToppingIds.slice(FREE_TOPPINGS_LIMIT);
+  let extraCost = 0;
+  
+  extraIds.forEach(id => {
+    const t = TOPPINGS.find(to => to.id === id);
+    if (t && t.price) {
+      extraCost += t.price;
+    }
+  });
+
+  return { extraCost, extraIds };
+}
 
 export function validateBurrito(selectedToppingIds: string[]): boolean {
   if (selectedToppingIds.length < MIN_TOPPINGS) return false;

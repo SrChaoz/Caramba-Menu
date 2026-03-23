@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { TOPPINGS, MIN_TOPPINGS, MAX_TOPPINGS, TOPPING_CATEGORIES, validateBurrito } from '@/config/menu';
+import { TOPPINGS, MIN_TOPPINGS, FREE_TOPPINGS_LIMIT, TOPPING_CATEGORIES, validateBurrito, calculateExtras } from '@/config/menu';
 import { Info } from 'lucide-react';
 
 interface Props {
@@ -10,24 +10,22 @@ interface Props {
 
 const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selectedToppings, onToggle }: Props) {
   const isValid = validateBurrito(selectedToppings);
-  const reachedMax = selectedToppings.length >= MAX_TOPPINGS;
+  const isOverLimit = selectedToppings.length >= FREE_TOPPINGS_LIMIT;
+  const { extraCost } = calculateExtras(selectedToppings);
 
   const [isStickyVisible, setIsStickyVisible] = useState(false);
+  const [pendingExtraTopping, setPendingExtraTopping] = useState<string | null>(null);
   const staticCounterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsStickyVisible(!entry.isIntersecting);
-      },
+      ([entry]) => setIsStickyVisible(!entry.isIntersecting),
       { threshold: 0 }
     );
-
     if (staticCounterRef.current) observer.observe(staticCounterRef.current);
     return () => observer.disconnect();
   }, []);
 
-  // Optimización de rendimiento para iterar una sola vez sobre los exclusivos
   const selectedExclusiveGroups = useMemo(() => {
     const groups = new Set<string>();
     for (const id of selectedToppings) {
@@ -46,16 +44,24 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
           isStickyVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95'
         }`}
       >
-        <div className="bg-caramba-surface/85 backdrop-blur-xl px-4 py-2 rounded-full border border-caramba-border shadow-lg shadow-black/40 text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap">
+        <div className="bg-caramba-surface/90 backdrop-blur-xl px-4 py-2 rounded-full border border-caramba-border shadow-lg shadow-black/40 text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap">
           <span>🛒</span>
-          <span className="text-white font-bold">
-            <strong className={`text-base ${reachedMax ? 'text-caramba-red' : isValid ? 'text-[#2EBA5B]' : 'text-white'}`}>
+          <span className="text-white font-bold flex items-baseline gap-1">
+            <strong className={`text-base ${isOverLimit ? 'text-[#2EBA5B]' : isValid ? 'text-white' : 'text-caramba-red'}`}>
               {selectedToppings.length}
-            </strong> seleccionados
+            </strong> 
+            seleccionados
+            {!isValid && (
+              <span className="text-caramba-red/80 font-medium text-[10px] sm:text-xs ml-1 uppercase tracking-wide">
+                (Mín. {MIN_TOPPINGS})
+              </span>
+            )}
           </span>
-          <span className="text-caramba-muted font-medium ml-1">
-            (Mín: {MIN_TOPPINGS} - Máx: {MAX_TOPPINGS})
-          </span>
+          {extraCost > 0 && (
+            <span className="text-[#2EBA5B] font-bold bg-[#2EBA5B]/20 px-2 rounded-full border border-[#2EBA5B]/30 ml-1">
+              +${extraCost.toFixed(2)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -63,15 +69,20 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
         <h2 className="text-xl font-black uppercase tracking-wider text-white">
           Arma tu burrito
         </h2>
-        <span className="text-caramba-red text-sm font-bold">
-          (Mínimo {MIN_TOPPINGS}, Máximo {MAX_TOPPINGS})
+        <span className="text-caramba-muted text-sm font-bold flex items-center gap-2 flex-wrap">
+          (Mín. <span className="text-white bg-caramba-surface px-1.5 py-0.5 rounded-md border border-caramba-border">{MIN_TOPPINGS}</span>, Max <span className="text-white bg-caramba-surface px-1.5 py-0.5 rounded-md border border-caramba-border">{FREE_TOPPINGS_LIMIT}</span> libres + Extras)
         </span>
       </div>
 
-      <div ref={staticCounterRef} className="flex bg-caramba-surface rounded-lg px-4 py-2 mb-2 w-fit border border-caramba-border">
-        <span className="text-caramba-muted text-sm font-medium">
-          Seleccionados: <strong className={`text-lg ml-1 ${isValid ? 'text-green-500' : 'text-caramba-red'}`}>{selectedToppings.length}</strong> <span className="text-xs">/ {MAX_TOPPINGS}</span>
-        </span>
+      <div ref={staticCounterRef} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-caramba-surface rounded-lg px-4 py-3 mb-2 w-full border border-caramba-border shadow-md">
+        <div className="text-caramba-muted text-sm font-medium flex-1">
+          Seleccionados: <strong className={`text-lg ml-1 ${isOverLimit ? 'text-[#2EBA5B]' : isValid ? 'text-white' : 'text-caramba-red'}`}>{selectedToppings.length}</strong>
+        </div>
+        {extraCost > 0 && (
+          <div className="bg-[#2EBA5B]/10 border border-[#2EBA5B]/20 text-[#2EBA5B] text-sm font-black px-3 py-1 rounded-lg flex items-center gap-2">
+            EXTRAS: +${extraCost.toFixed(2)}
+          </div>
+        )}
       </div>
 
       {TOPPING_CATEGORIES.map(category => {
@@ -87,11 +98,6 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                   <Info className="w-3 h-3"/> Puedes elegir 1 tipo de arroz
                 </span>
               )}
-              {category.id === 'meat' && (
-                <span className="text-xs normal-case font-normal flex items-center gap-1 opacity-80">
-                  <Info className="w-3 h-3"/> Elige 1 proteína
-                </span>
-              )}
             </h3>
             <div className="grid grid-cols-2 gap-3 pb-2">
               {categoryToppings.map((topping) => {
@@ -101,18 +107,38 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                   ? selectedExclusiveGroups.has(topping.exclusiveGroup) && !isActive
                   : false;
                   
-                const isDisabled = reachedMax && !isActive && !hasAnotherInExclusiveGroup;
+                const isRice = topping.exclusiveGroup === 'arroz';
+                const isDisabled = isRice ? hasAnotherInExclusiveGroup : false;
+                
+                // Mostrar badge de precio si agregarlo costará extra
+                const isExtra = !isActive && isOverLimit && topping.price > 0;
+
+                const handleToggle = () => {
+                  if (!isActive && selectedToppings.length === FREE_TOPPINGS_LIMIT) {
+                    const isRiceSwap = isRice && hasAnotherInExclusiveGroup;
+                    if (!isRiceSwap) {
+                      setPendingExtraTopping(topping.id);
+                      return;
+                    }
+                  }
+                  onToggle(burritoId, topping.id);
+                };
 
                 return (
                   <button
                     key={topping.id}
-                    onClick={() => onToggle(burritoId, topping.id)}
-                    className={`topping-card ${isActive ? 'active' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                    onClick={handleToggle}
+                    className={`topping-card relative overflow-hidden ${isActive ? 'active' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     type="button"
-                    title={isDisabled ? `Límite de ${MAX_TOPPINGS} toppings alcanzado` : ''}
                   >
                     <span className="text-3xl mb-1">{topping.emoji}</span>
                     <span className="font-bold text-sm leading-tight text-center text-white">{topping.label}</span>
+                    
+                    {isExtra && !isDisabled && (
+                      <span className="absolute top-1 right-1 bg-[#2EBA5B]/90 backdrop-blur-sm text-white text-[10px] font-black px-1.5 py-0.5 rounded border border-white/20 shadow-md">
+                        +${topping.price.toFixed(2)}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -121,6 +147,46 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
         );
       })}
 
+      {/* Modal Personalizado para Confirmar Extras */}
+      {pendingExtraTopping && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setPendingExtraTopping(null)}>
+          <div 
+            className="bg-caramba-surface border-2 border-caramba-border rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 animate-slide-up"
+            onClick={e => e.stopPropagation()} // Previene cerrar si hace clic en la tarjeta
+          >
+            <h3 className="text-xl font-black text-white uppercase tracking-wide flex items-center gap-2">
+              <span className="text-2xl">🌯</span> Límite alcanzado
+            </h3>
+            <p className="text-caramba-text text-sm font-medium leading-relaxed">
+              Tus <strong className="text-white">8 ingredientes incluidos</strong> ya están cubiertos.
+            </p>
+            <p className="text-caramba-muted text-sm font-medium">
+              A partir de aquí, los ingredientes adicionales tendrán costo extra según el menú.
+            </p>
+            <p className="text-[#2EBA5B] font-bold text-sm mt-1">
+              ¿Deseas activarlos y pagar por extras?
+            </p>
+            
+            <div className="flex gap-3 mt-3">
+              <button 
+                onClick={() => setPendingExtraTopping(null)}
+                className="flex-1 bg-transparent border-2 border-caramba-border text-white py-3 rounded-xl font-bold uppercase tracking-wider active:scale-95 transition-all text-xs"
+              >
+                No, gracias
+              </button>
+              <button 
+                onClick={() => {
+                  onToggle(burritoId, pendingExtraTopping);
+                  setPendingExtraTopping(null);
+                }}
+                className="flex-1 bg-[#2EBA5B] text-white py-3 rounded-xl font-bold uppercase tracking-wider active:scale-95 transition-all shadow-[0_0_20px_rgba(46,186,91,0.3)] text-xs"
+              >
+                Sí, aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
