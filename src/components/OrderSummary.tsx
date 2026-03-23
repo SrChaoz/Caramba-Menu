@@ -1,6 +1,7 @@
 import { useCartStore } from '@/store/cartStore';
 import { buildWhatsAppURL } from '@/lib/whatsapp';
 import { TOPPINGS, sortToppings, calculateExtras } from '@/config/menu';
+import { supabase } from '@/lib/supabase';
 import { Receipt, User, MapPin, Package, ArrowLeft, Calendar, Phone } from 'lucide-react';
 
 interface Props {
@@ -11,7 +12,10 @@ export default function OrderSummary({ onBack }: Props) {
   const store = useCartStore();
   const { customer, quantity, burritos, total, mode } = store;
 
-  const handleSend = () => {
+
+  const handleSend = async () => {
+    const ticketId = `#${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
     // Preparar el payload correcto (OrderPayload)
     const payload = {
       customer,
@@ -19,7 +23,45 @@ export default function OrderSummary({ onBack }: Props) {
       mode: mode || 'same',
       burritos,
       total,
+      ticketId,
     };
+
+    try {
+      const allBurritos = mode === 'same' ? [burritos[0]] : burritos;
+      const ingredientsList: string[] = [];
+      const extrasList: { nombre: string; precio: number }[] = [];
+
+      allBurritos.forEach((b) => {
+        const { extraIds } = calculateExtras(b.selectedToppings);
+        const baseIds = b.selectedToppings.filter(id => !extraIds.includes(id));
+        
+        ingredientsList.push(...sortToppings(baseIds).map(resolveLabel));
+        
+        extraIds.forEach(eid => {
+          const topping = TOPPINGS.find(t => t.id === eid);
+          if (topping) {
+            extrasList.push({ nombre: topping.label, precio: topping.price || 0 });
+          }
+        });
+      });
+
+      await supabase.from('pedidos').insert({
+        codigo_ticket: ticketId,
+        dia_entrega: customer.deliveryDay?.toUpperCase() || 'FIN DE SEMANA',
+        bloque_horario: '19:00 - 21:00',
+        cliente_nombre: customer.name,
+        cliente_telefono: customer.phone,
+        cliente_direccion: customer.address,
+        cantidad_burritos: quantity,
+        total: total,
+        estado: 'no_confirmado',
+        ingredientes: ingredientsList,
+        extras: extrasList
+      });
+    } catch (error) {
+      console.error('Error guardando en Supabase:', error);
+    }
+
     const url = buildWhatsAppURL(payload as any); // Tipado asegurado internamente
     window.open(url, '_blank');
   };

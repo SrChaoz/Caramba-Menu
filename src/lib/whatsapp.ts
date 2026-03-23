@@ -42,8 +42,12 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
   const totalFormatted = `$${total.toFixed(2)}`;
   const qtyLabel = quantity === 1 ? '1 Burrito' : `${quantity} Burritos`;
 
+  const titleLine = payload.ticketId 
+    ? `¡Hola CARAMBA! 🌯 Quiero realizar un pedido. (Ticket *${payload.ticketId}*)` 
+    : '¡Hola CARAMBA! 🌯 Quiero realizar un pedido.';
+
   const message = [
-    '¡Hola CARAMBA! 🌯 Quiero realizar un pedido.',
+    titleLine,
     '',
     `🗓️ *Para entregar el:* ${customer.deliveryDay?.toUpperCase() || 'FIN DE SEMANA'} (19:00 - 21:00)`,
     `👤 *Nombre:* ${customer.name}`,
