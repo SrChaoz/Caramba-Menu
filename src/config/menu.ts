@@ -27,7 +27,7 @@ export const MENU_CONFIG = {
   },
   validation: {
     minToppings: 5,           // Mínimo 5 toppings por burrito
-    maxToppings: 10,          // Máximo 10 toppings en total
+    maxToppings: 8,           // Máximo 8 toppings en total
   },
   toppings: [
     // Base
