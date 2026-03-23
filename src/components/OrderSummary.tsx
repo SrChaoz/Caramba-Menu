@@ -1,6 +1,6 @@
 import { useCartStore } from '@/store/cartStore';
 import { buildWhatsAppURL } from '@/lib/whatsapp';
-import { TOPPINGS } from '@/config/menu';
+import { TOPPINGS, sortToppings } from '@/config/menu';
 import { Receipt, User, MapPin, Package, ArrowLeft, Calendar, Phone } from 'lucide-react';
 
 interface Props {
@@ -57,7 +57,7 @@ export default function OrderSummary({ onBack }: Props) {
                 Burrito {i + 1}
               </span>
               <span className="text-caramba-text text-sm leading-relaxed font-medium">
-                {b.selectedToppings.map(resolveLabel).join(', ')}
+                {sortToppings(b.selectedToppings).map(resolveLabel).join(', ')}
               </span>
             </div>
           ))}

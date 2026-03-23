@@ -8,7 +8,7 @@ import ToppingSelector from '@/components/ToppingSelector';
 import BurritoTabs from '@/components/BurritoTabs';
 import CustomerForm from '@/components/CustomerForm';
 import OrderSummary from '@/components/OrderSummary';
-import { MIN_TOPPINGS } from '@/config/menu';
+import { validateBurrito } from '@/config/menu';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export default function Home() {
@@ -81,20 +81,20 @@ export default function Home() {
         {step === 3 && mode === 'same' && (
           <div className="animate-fade-in flex flex-col items-center">
             <ToppingSelector 
-              burritoId={burritos[0].id} 
+              burritoId={burritos[0].id}
               selectedToppings={burritos[0].selectedToppings} 
-              onToggle={(tId) => toggleTopping(burritos[0].id, tId)} 
+              onToggle={toggleTopping} 
             />
             {/* Same mode global continue button */}
             <div className="w-full mt-4 bg-caramba-bg pt-2 pb-6 sticky bottom-0 border-t border-caramba-border/50">
               <button 
                 onClick={handleNextFromToppings}
-                disabled={burritos[0].selectedToppings.length < MIN_TOPPINGS} 
+                disabled={!validateBurrito(burritos[0].selectedToppings)} 
                 className="btn-primary text-lg py-5 shadow-lg shadow-black/50 flex items-center justify-center gap-2 w-full"
               >
-                {burritos[0].selectedToppings.length >= MIN_TOPPINGS ? (
+                {validateBurrito(burritos[0].selectedToppings) ? (
                   <>CONTINUAR <ArrowRight className="w-5 h-5" /></>
-                ) : `SELECCIONA ${MIN_TOPPINGS} TOPPINGS`}
+                ) : `COMPLETA TU BURRITO`}
               </button>
             </div>
           </div>

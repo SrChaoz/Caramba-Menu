@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { MIN_TOPPINGS } from '@/config/menu';
+import { MIN_TOPPINGS, validateBurrito } from '@/config/menu';
 import ToppingSelector from './ToppingSelector';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -12,14 +12,15 @@ export default function BurritoTabs({ onNext }: Props) {
   const { burritos, toggleTopping } = useCartStore();
   const [activeTab, setActiveTab] = useState(0);
 
-  const allValid = burritos.every(b => b.selectedToppings.length >= MIN_TOPPINGS);
+  const allValid = burritos.every(b => validateBurrito(b.selectedToppings));
+
 
   return (
     <div className="flex flex-col gap-4 w-full animate-fade-in relative pb-24">
       {/* Tabs list */}
       <div className="flex gap-3 w-full overflow-x-auto pb-4 snap-x snap-mandatory hide-scrollbar">
         {burritos.map((b, idx) => {
-          const isValid = b.selectedToppings.length >= MIN_TOPPINGS;
+          const isValid = validateBurrito(b.selectedToppings);
           const isActive = activeTab === idx;
           return (
             <button
@@ -45,7 +46,7 @@ export default function BurritoTabs({ onNext }: Props) {
             <ToppingSelector
               burritoId={b.id}
               selectedToppings={b.selectedToppings}
-              onToggle={(tId) => toggleTopping(b.id, tId)}
+              onToggle={toggleTopping}
             />
           </div>
         ))}

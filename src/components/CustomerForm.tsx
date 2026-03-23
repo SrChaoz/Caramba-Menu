@@ -60,10 +60,10 @@ export default function CustomerForm({ onNext }: Props) {
         {/* Selector de Día de Entrega */}
         <div className="bg-caramba-surface/50 p-4 rounded-2xl border border-caramba-border mt-2">
           <label className="text-caramba-muted text-sm font-bold uppercase mb-3 flex items-center gap-2 tracking-wider">
-            <Calendar className="w-4 h-4" /> ¿Qué día te entregamos? (7 a 8 PM)
+            <Calendar className="w-4 h-4" /> ¿Qué día te entregamos? (7 a 9 PM)
           </label>
           <div className="flex flex-col gap-2">
-            {(['Viernes', 'Sábado', 'Domingo'] as DeliveryDay[]).map((day) => (
+            {(['Viernes', 'Sábado'] as DeliveryDay[]).map((day) => (
               <button
                 key={day}
                 onClick={() => setCustomer({ deliveryDay: day })}

@@ -1,5 +1,5 @@
 import { OrderPayload } from '@/types';
-import { MENU_CONFIG, TOPPINGS } from '@/config/menu';
+import { MENU_CONFIG, TOPPINGS, sortToppings } from '@/config/menu';
 
 export function buildWhatsAppURL(payload: OrderPayload): string {
   const { customer, quantity, burritos, total } = payload;
@@ -11,7 +11,8 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
 
   // Construye el detalle de cada burrito
   const burritoLines = burritos.map((b, i) => {
-    const labels = b.selectedToppings.map(resolveLabel).join(', ');
+    const sortedToppings = sortToppings(b.selectedToppings);
+    const labels = sortedToppings.map(resolveLabel).join(', ');
     return `🌯 Burrito ${i + 1}:\n   ${labels}.`;
   }).join('\n\n');
 
@@ -31,11 +32,9 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
     burritoLines,
   ].join('\n');
 
-  // Para WhatsApp Web es común que `encodeURIComponent` rompa emojis compuestos o multiforme
-  // Una alternativa directa y más segura es aislar la codificación estándar y arreglar espacios
-  // Otra opción que WhatsApp nativo prefiere es `window.encodeURI` o directamente enviar los emojis sin codificar,
-  // dejando que la app/OS los parsee.
-  let encodedMessage = encodeURI(message).replace(/#/g, '%23').replace(/\+/g, '%2B');
+  // Usar encodeURIComponent es el estándar correcto para parámetros de consulta (query strings)
+  // y usar api.whatsapp.com previene pérdida de datos o emojis en redesirecciones de wa.me en Desktop
+  const encodedMessage = encodeURIComponent(message);
   
-  return `https://wa.me/${phone}?text=${encodedMessage}`;
+  return `https://api.whatsapp.com/send/?phone=${phone}&text=${encodedMessage}`;
 }
