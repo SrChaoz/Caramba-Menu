@@ -48,7 +48,7 @@ export const MENU_CONFIG = {
     { id: 'choclo',         categoryId: 'regular', label: 'Choclo',          emoji: '🌽', price: 0.50 },
     { id: 'pico-de-gallo',  categoryId: 'regular', label: 'Pico de Gallo',   emoji: '🍅', price: 0.50 },
     { id: 'cebolla',        categoryId: 'regular', label: 'Cebolla',         emoji: '🧅', price: 0.25 },
-    { id: 'cilantro',       categoryId: 'regular', label: 'Cilantro',        emoji: '🌿', price: 0.15 },
+    { id: 'cilantro',       categoryId: 'regular', label: 'Cilantro',        emoji: '🌿', price: 0.10 },
   ] as Topping[],
   whatsapp: {
     phone: '593987543310',
