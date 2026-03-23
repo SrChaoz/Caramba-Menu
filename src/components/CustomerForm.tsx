@@ -53,7 +53,13 @@ export default function CustomerForm({ onNext }: Props) {
             className="input-field"
             placeholder="Ej: 0987654321"
             value={customer.phone}
-            onChange={(e) => setCustomer({ phone: e.target.value })}
+            onChange={(e) => {
+              const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
+              setCustomer({ phone: onlyNumbers });
+            }}
+            pattern="[0-9]*"
+            inputMode="numeric"
+            maxLength={15}
           />
         </div>
 
