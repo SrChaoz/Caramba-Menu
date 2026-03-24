@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { TOPPINGS, MIN_TOPPINGS, FREE_TOPPINGS_LIMIT, TOPPING_CATEGORIES, validateBurrito, calculateExtras } from '@/config/menu';
 import { Info } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface Props {
   burritoId: number;
@@ -15,6 +16,7 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
 
   const [isStickyVisible, setIsStickyVisible] = useState(false);
   const [pendingExtraTopping, setPendingExtraTopping] = useState<string | null>(null);
+  const [unavailableToppings, setUnavailableToppings] = useState<Set<string>>(new Set());
   const staticCounterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,6 +26,20 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
     );
     if (staticCounterRef.current) observer.observe(staticCounterRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const fetchToppings = async () => {
+      const { data } = await supabase.from('menu_toppings').select('id, disponible').eq('disponible', false);
+      if (data) setUnavailableToppings(new Set(data.map(d => d.id)));
+    };
+    fetchToppings();
+    
+    const sub = supabase.channel('menu_toppings_live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_toppings' }, fetchToppings)
+      .subscribe();
+      
+    return () => { supabase.removeChannel(sub); };
   }, []);
 
   const selectedExclusiveGroups = useMemo(() => {
@@ -108,7 +124,8 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                   : false;
                   
                 const isRice = topping.exclusiveGroup === 'arroz';
-                const isDisabled = isRice ? hasAnotherInExclusiveGroup : false;
+                const isAgotado = unavailableToppings.has(topping.id);
+                const isDisabled = (isRice ? hasAnotherInExclusiveGroup : false) || isAgotado;
                 
                 // Mostrar badge de precio si agregarlo costará extra
                 const isExtra = !isActive && isOverLimit && topping.price > 0;
@@ -128,6 +145,7 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                   <button
                     key={topping.id}
                     onClick={handleToggle}
+                    disabled={isDisabled}
                     className={`topping-card relative overflow-hidden ${isActive ? 'active' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     type="button"
                   >
@@ -137,6 +155,12 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                     {isExtra && !isDisabled && (
                       <span className="absolute top-1 right-1 bg-[#2EBA5B]/90 backdrop-blur-sm text-white text-[10px] font-black px-1.5 py-0.5 rounded border border-white/20 shadow-md">
                         +${topping.price.toFixed(2)}
+                      </span>
+                    )}
+
+                    {isAgotado && (
+                      <span className="absolute top-1 right-1 bg-caramba-red/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded border border-white/20 shadow-md tracking-wider uppercase">
+                        Agotado
                       </span>
                     )}
                   </button>
