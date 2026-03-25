@@ -1,6 +1,6 @@
 import { useCartStore } from '@/store/cartStore';
 import { buildWhatsAppURL } from '@/lib/whatsapp';
-import { TOPPINGS, sortToppings, calculateExtras } from '@/config/menu';
+import { useMenuStore } from '@/store/menuStore';
 import { supabase } from '@/lib/supabase';
 import { Receipt, User, MapPin, Package, ArrowLeft, Calendar, Phone } from 'lucide-react';
 
@@ -11,6 +11,7 @@ interface Props {
 export default function OrderSummary({ onBack }: Props) {
   const store = useCartStore();
   const { customer, quantity, burritos, total, mode } = store;
+  const menuStore = useMenuStore();
 
 
   const handleSend = async () => {
@@ -32,13 +33,13 @@ export default function OrderSummary({ onBack }: Props) {
       const extrasList: { nombre: string; precio: number }[] = [];
 
       allBurritos.forEach((b) => {
-        const { extraIds } = calculateExtras(b.selectedToppings);
+        const { extraIds } = menuStore.calculateExtras(b.selectedToppings);
         const baseIds = b.selectedToppings.filter(id => !extraIds.includes(id));
         
-        ingredientsList.push(...sortToppings(baseIds).map(resolveLabel));
+        ingredientsList.push(...menuStore.sortToppings(baseIds).map(resolveLabel));
         
         extraIds.forEach(eid => {
-          const topping = TOPPINGS.find(t => t.id === eid);
+          const topping = menuStore.toppings.find(t => t.id === eid);
           if (topping) {
             extrasList.push({ nombre: topping.label, precio: topping.price || 0 });
           }
@@ -66,7 +67,7 @@ export default function OrderSummary({ onBack }: Props) {
     window.open(url, '_blank');
   };
 
-  const resolveLabel = (id: string) => TOPPINGS.find(t => t.id === id)?.label ?? id;
+  const resolveLabel = (id: string) => menuStore.toppings.find(t => t.id === id)?.label ?? id;
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in pb-10">
@@ -94,7 +95,7 @@ export default function OrderSummary({ onBack }: Props) {
         {/* Burritos */}
         <div className="flex flex-col gap-5 pb-5 border-b-2 border-caramba-border">
           {burritos.map((b, i) => {
-            const { extraCost, extraIds } = calculateExtras(b.selectedToppings);
+            const { extraCost, extraIds } = menuStore.calculateExtras(b.selectedToppings);
             const baseIds = b.selectedToppings.filter(id => !extraIds.includes(id));
 
             return (
@@ -103,11 +104,11 @@ export default function OrderSummary({ onBack }: Props) {
                   Burrito {i + 1}
                 </span>
                 <span className="text-caramba-text text-sm leading-relaxed font-medium">
-                  {sortToppings(baseIds).map(resolveLabel).join(', ')}
+                  {menuStore.sortToppings(baseIds).map(resolveLabel).join(', ')}
                 </span>
                 {extraIds.length > 0 && (
                   <span className="text-[#2EBA5B] text-sm leading-relaxed font-bold mt-0.5">
-                    ✨ Extras (+${extraCost.toFixed(2)}): {sortToppings(extraIds).map(resolveLabel).join(', ')}
+                    ✨ Extras (+${extraCost.toFixed(2)}): {menuStore.sortToppings(extraIds).map(resolveLabel).join(', ')}
                   </span>
                 )}
               </div>

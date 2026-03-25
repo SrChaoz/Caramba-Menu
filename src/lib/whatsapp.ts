@@ -1,13 +1,14 @@
 import { OrderPayload } from '@/types';
-import { MENU_CONFIG, TOPPINGS, sortToppings, calculateExtras } from '@/config/menu';
+import { useMenuStore } from '@/store/menuStore';
 
 export function buildWhatsAppURL(payload: OrderPayload): string {
   const { customer, quantity, burritos, total, mode } = payload;
-  const phone = MENU_CONFIG.whatsapp.phone;
+  const menuStore = useMenuStore.getState();
+  const phone = menuStore.config?.whatsappPhone || '593987543310';
 
   // Resuelve el label de un topping a partir de su id y opcionalmente añade el precio
   const resolveLabel = (id: string, includePrice = false): string => {
-    const t = TOPPINGS.find(to => to.id === id);
+    const t = menuStore.toppings.find(to => to.id === id);
     if (!t) return id;
     if (includePrice && t.price > 0) return `${t.label} (+$${t.price.toFixed(2)})`;
     return t.label;
@@ -15,17 +16,17 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
 
   // Construye el detalle de cada burrito (usando burritos[0] si es 'same')
   const generateBurritoText = (b: typeof burritos[0], idx?: number) => {
-    const { extraCost, extraIds } = calculateExtras(b.selectedToppings);
+    const { extraCost, extraIds } = menuStore.calculateExtras(b.selectedToppings);
     const baseIds = b.selectedToppings.filter(id => !extraIds.includes(id));
     
-    const baseLabels = sortToppings(baseIds).map(l => resolveLabel(l)).join(', ');
+    const baseLabels = menuStore.sortToppings(baseIds).map(l => resolveLabel(l)).join(', ');
     
     let text = idx !== undefined 
       ? `🌯 Burrito ${idx + 1}:\n   ${baseLabels}.`
       : `🌯 Ingredientes:\n   ${baseLabels}.`;
 
     if (extraIds.length > 0) {
-      const extraLabels = sortToppings(extraIds).map(l => resolveLabel(l, true)).join(', ');
+      const extraLabels = menuStore.sortToppings(extraIds).map(l => resolveLabel(l, true)).join(', ');
       text += `\n   ✨ Extras: ${extraLabels}`;
     }
     

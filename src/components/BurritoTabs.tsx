@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { MIN_TOPPINGS, validateBurrito } from '@/config/menu';
+import { useMenuStore } from '@/store/menuStore';
 import ToppingSelector from './ToppingSelector';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -10,6 +10,7 @@ interface Props {
 
 export default function BurritoTabs({ onNext }: Props) {
   const { burritos, toggleTopping } = useCartStore();
+  const { validateBurrito } = useMenuStore();
   const [activeTab, setActiveTab] = useState(0);
 
   const allValid = burritos.every(b => validateBurrito(b.selectedToppings));

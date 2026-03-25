@@ -1,4 +1,4 @@
-import type { Topping } from '@/config/menu';
+import type { Topping } from '@/store/menuStore';
 
 // Un burrito configurado individualmente
 export interface BurritoConfig {

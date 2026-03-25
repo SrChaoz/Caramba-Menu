@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import StepQty from '@/components/StepQty';
 import StepMode from '@/components/StepMode';
@@ -8,12 +8,17 @@ import ToppingSelector from '@/components/ToppingSelector';
 import BurritoTabs from '@/components/BurritoTabs';
 import CustomerForm from '@/components/CustomerForm';
 import OrderSummary from '@/components/OrderSummary';
-import { validateBurrito } from '@/config/menu';
+import { useMenuStore } from '@/store/menuStore';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   const [step, setStep] = useState(1);
   const { quantity, mode, burritos, toggleTopping } = useCartStore();
+  const { isLoading, error, fetchMenu, validateBurrito } = useMenuStore();
+
+  useEffect(() => {
+    fetchMenu();
+  }, []);
 
   const handleNextFromQty = () => {
     if (quantity > 1) {
@@ -42,6 +47,28 @@ export default function Home() {
       setStep(step - 1);
     }
   };
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen pt-24 pb-12 px-4 max-w-md mx-auto flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-white animate-pulse">
+          <div className="text-4xl">🌯</div>
+          <div className="font-bold uppercase tracking-widest text-sm text-caramba-red">Cargando menú...</div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen pt-24 pb-12 px-4 max-w-md mx-auto flex items-center justify-center">
+        <div className="p-6 bg-red-950/50 border border-red-500 rounded-xl text-center">
+          <p className="text-white font-bold mb-2">Error al cargar el menú</p>
+          <p className="text-sm text-red-200">{error}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen pt-24 pb-12 px-4 max-w-md mx-auto">

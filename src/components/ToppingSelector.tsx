@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { TOPPINGS, MIN_TOPPINGS, FREE_TOPPINGS_LIMIT, TOPPING_CATEGORIES, validateBurrito, calculateExtras } from '@/config/menu';
+import { useMenuStore } from '@/store/menuStore';
 import { Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -10,13 +10,16 @@ interface Props {
 }
 
 const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selectedToppings, onToggle }: Props) {
-  const isValid = validateBurrito(selectedToppings);
+  const menuStore = useMenuStore();
+  const MIN_TOPPINGS = menuStore.config?.minToppings || 0;
+  const FREE_TOPPINGS_LIMIT = menuStore.config?.freeToppingsLimit || 0;
+
+  const isValid = menuStore.validateBurrito(selectedToppings);
   const isOverLimit = selectedToppings.length >= FREE_TOPPINGS_LIMIT;
-  const { extraCost } = calculateExtras(selectedToppings);
+  const { extraCost } = menuStore.calculateExtras(selectedToppings);
 
   const [isStickyVisible, setIsStickyVisible] = useState(false);
   const [pendingExtraTopping, setPendingExtraTopping] = useState<string | null>(null);
-  const [unavailableToppings, setUnavailableToppings] = useState<Set<string>>(new Set());
   const staticCounterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,24 +31,10 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const fetchToppings = async () => {
-      const { data } = await supabase.from('menu_toppings').select('id, disponible').eq('disponible', false);
-      if (data) setUnavailableToppings(new Set(data.map(d => d.id)));
-    };
-    fetchToppings();
-    
-    const sub = supabase.channel('menu_toppings_live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_toppings' }, fetchToppings)
-      .subscribe();
-      
-    return () => { supabase.removeChannel(sub); };
-  }, []);
-
   const selectedExclusiveGroups = useMemo(() => {
     const groups = new Set<string>();
     for (const id of selectedToppings) {
-      const t = TOPPINGS.find(to => to.id === id);
+      const t = menuStore.toppings.find(to => to.id === id);
       if (t && t.exclusiveGroup) groups.add(t.exclusiveGroup);
     }
     return groups;
@@ -101,8 +90,8 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
         )}
       </div>
 
-      {TOPPING_CATEGORIES.map(category => {
-        const categoryToppings = TOPPINGS.filter(t => t.categoryId === category.id);
+      {menuStore.categories.map(category => {
+        const categoryToppings = menuStore.toppings.filter(t => t.categoryId === category.id);
         if (categoryToppings.length === 0) return null;
 
         return (
@@ -124,7 +113,7 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                   : false;
                   
                 const isRice = topping.exclusiveGroup === 'arroz';
-                const isAgotado = unavailableToppings.has(topping.id);
+                const isAgotado = !topping.disponible;
                 const isDisabled = (isRice ? hasAnotherInExclusiveGroup : false) || isAgotado;
                 
                 // Mostrar badge de precio si agregarlo costará extra
