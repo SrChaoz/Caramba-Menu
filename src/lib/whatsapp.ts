@@ -35,7 +35,8 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
 
   let burritoLines = '';
   if (mode === 'same') {
-    burritoLines = generateBurritoText(burritos[0]);
+    const label = quantity > 1 ? `${quantity} Burritos iguales` : 'Ingredientes';
+    burritoLines = generateBurritoText(burritos[0]).replace('🌯 Ingredientes', `🌯 ${label}`);
   } else {
     burritoLines = burritos.map((b, i) => generateBurritoText(b, i)).join('\n\n');
   }

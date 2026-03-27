@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { buildWhatsAppURL } from '@/lib/whatsapp';
 import { useMenuStore } from '@/store/menuStore';
@@ -12,12 +13,15 @@ export default function OrderSummary({ onBack }: Props) {
   const store = useCartStore();
   const { customer, quantity, burritos, total, mode } = store;
   const menuStore = useMenuStore();
-
+  const [isSending, setIsSending] = useState(false);
 
   const handleSend = async () => {
+    // Guard: evitar spameo y pedidos duplicados
+    if (isSending) return;
+    setIsSending(true);
+
     const ticketId = `#${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    // Preparar el payload correcto (OrderPayload)
     const payload = {
       customer,
       quantity,
@@ -27,24 +31,46 @@ export default function OrderSummary({ onBack }: Props) {
       ticketId,
     };
 
+    // PASO 1: Redirigir a WhatsApp de forma SÍNCRONA antes de cualquier await.
+    // Safari iOS bloquea window.open() si se llama después de un await porque
+    // rompe la "cadena de confianza" del evento de usuario. window.location.href
+    // no es un popup, por lo que nunca es bloqueado.
+    const url = buildWhatsAppURL(payload as any);
+    window.location.href = url;
+
+    // PASO 2: Guardar en Supabase en segundo plano (ya redirigimos, esto es best-effort).
+    // En modo 'same' todos los burritos son iguales: guardamos los ingredientes de burritos[0]
+    // y cantidad_burritos ya refleja la cantidad real.
     try {
-      const allBurritos = mode === 'same' ? [burritos[0]] : burritos;
+      const sourceBurrito = burritos[0];
       const ingredientsList: string[] = [];
       const extrasList: { nombre: string; precio: number }[] = [];
 
-      allBurritos.forEach((b) => {
-        const { extraIds } = menuStore.calculateExtras(b.selectedToppings);
-        const baseIds = b.selectedToppings.filter(id => !extraIds.includes(id));
-        
-        ingredientsList.push(...menuStore.sortToppings(baseIds).map(resolveLabel));
-        
-        extraIds.forEach(eid => {
-          const topping = menuStore.toppings.find(t => t.id === eid);
-          if (topping) {
-            extrasList.push({ nombre: topping.label, precio: topping.price || 0 });
-          }
-        });
+      const { extraIds } = menuStore.calculateExtras(sourceBurrito.selectedToppings);
+      const baseIds = sourceBurrito.selectedToppings.filter(id => !extraIds.includes(id));
+
+      ingredientsList.push(...menuStore.sortToppings(baseIds).map(resolveLabel));
+
+      extraIds.forEach(eid => {
+        const topping = menuStore.toppings.find(t => t.id === eid);
+        if (topping) {
+          extrasList.push({ nombre: topping.label, precio: topping.price || 0 });
+        }
       });
+
+      if (mode !== 'same') {
+        // Modo diferente: añadir ingredientes de los burritos restantes separados por '---'
+        burritos.slice(1).forEach((b, i) => {
+          const { extraIds: eIds } = menuStore.calculateExtras(b.selectedToppings);
+          const bIds = b.selectedToppings.filter(id => !eIds.includes(id));
+          ingredientsList.push(`--- Burrito ${i + 2}`);
+          ingredientsList.push(...menuStore.sortToppings(bIds).map(resolveLabel));
+          eIds.forEach(eid => {
+            const topping = menuStore.toppings.find(t => t.id === eid);
+            if (topping) extrasList.push({ nombre: topping.label, precio: topping.price || 0 });
+          });
+        });
+      }
 
       await supabase.from('pedidos').insert({
         codigo_ticket: ticketId,
@@ -62,9 +88,6 @@ export default function OrderSummary({ onBack }: Props) {
     } catch (error) {
       console.error('Error guardando en Supabase:', error);
     }
-
-    const url = buildWhatsAppURL(payload as any); // Tipado asegurado internamente
-    window.open(url, '_blank');
   };
 
   const resolveLabel = (id: string) => menuStore.toppings.find(t => t.id === id)?.label ?? id;
@@ -137,10 +160,11 @@ export default function OrderSummary({ onBack }: Props) {
         </button>
         
         <button 
-          onClick={handleSend} 
-          className="w-3/4 bg-caramba-red text-white py-5 px-4 rounded-2xl text-lg sm:text-xl font-black uppercase tracking-wider active:scale-95 transition-all shadow-[0_0_30px_rgba(192,0,12,0.3)] hover:shadow-[0_0_40px_rgba(192,0,12,0.4)]"
+          onClick={handleSend}
+          disabled={isSending}
+          className="w-3/4 bg-caramba-red text-white py-5 px-4 rounded-2xl text-lg sm:text-xl font-black uppercase tracking-wider active:scale-95 transition-all shadow-[0_0_30px_rgba(192,0,12,0.3)] hover:shadow-[0_0_40px_rgba(192,0,12,0.4)] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
         >
-          ENVIAR PEDIDO
+          {isSending ? 'ENVIANDO...' : 'ENVIAR PEDIDO'}
         </button>
       </div>
     </div>
