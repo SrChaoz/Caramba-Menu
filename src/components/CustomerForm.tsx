@@ -69,7 +69,7 @@ export default function CustomerForm({ onNext }: Props) {
             <Calendar className="w-4 h-4" /> ¿Qué día te entregamos? (7 a 9 PM)
           </label>
           <div className="flex flex-col gap-2">
-            {(['Viernes', 'Sábado', 'Domingo'] as DeliveryDay[]).map((day) => (
+            {(['Viernes', 'Sábado'] as DeliveryDay[]).map((day) => (
               <button
                 key={day}
                 onClick={() => setCustomer({ deliveryDay: day })}

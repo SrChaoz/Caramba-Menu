@@ -13,7 +13,8 @@ export interface Topping {
   label: string;   
   emoji: string;   
   exclusiveGroup?: string; 
-  price: number;
+  price: number;       // costo cuando es extra real (9+ ingredientes)
+  surcharge: number;   // costo adicional cuando está dentro del límite (ej. carne-res = $0.50)
   disponible: boolean;
 }
 
@@ -33,7 +34,7 @@ interface MenuState {
   fetchMenu: () => Promise<void>;
   
   // Helpers
-  calculateExtras: (selectedIds: string[]) => { extraCost: number, extraIds: string[] };
+  calculateExtras: (selectedIds: string[]) => { extraCost: number; extraIds: string[]; surchargeCost: number; surchargeIds: string[] };
   validateBurrito: (selectedIds: string[]) => boolean;
   sortToppings: (selectedIds: string[]) => string[];
 }
@@ -83,6 +84,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
           emoji: t.emoji || '',
           exclusiveGroup: t.exclusive_group,
           price: Number(t.precio_extra),
+          surcharge: Number(t.precio_surcharge ?? 0),
           disponible: t.disponible
         }));
 
@@ -96,23 +98,34 @@ export const useMenuStore = create<MenuState>((set, get) => ({
 
   calculateExtras: (selectedIds: string[]) => {
     const { config, toppings } = get();
-    if (!config) return { extraCost: 0, extraIds: [] };
+    if (!config) return { extraCost: 0, extraIds: [], surchargeCost: 0, surchargeIds: [] };
 
+    // Surcharge: toppings con costo base adicional (ej. carne-res +$0.50)
+    // aplica cuando el topping está DENTRO del límite de ingredientes libres.
+    const surchargeIds = selectedIds
+      .slice(0, config.freeToppingsLimit)
+      .filter(id => {
+        const t = toppings.find(to => to.id === id);
+        return t && t.surcharge > 0;
+      });
+    const surchargeCost = surchargeIds.reduce((acc, id) => {
+      const t = toppings.find(to => to.id === id);
+      return acc + (t?.surcharge ?? 0);
+    }, 0);
+
+    // Extras: ingredientes más allá del límite libre
     if (selectedIds.length <= config.freeToppingsLimit) {
-      return { extraCost: 0, extraIds: [] };
+      return { extraCost: 0, extraIds: [], surchargeCost, surchargeIds };
     }
-    
+
     const extraIds = selectedIds.slice(config.freeToppingsLimit);
     let extraCost = 0;
-    
     extraIds.forEach(id => {
       const t = toppings.find(to => to.id === id);
-      if (t && t.price) {
-        extraCost += t.price;
-      }
+      if (t && t.price) extraCost += t.price;
     });
 
-    return { extraCost, extraIds };
+    return { extraCost, extraIds, surchargeCost, surchargeIds };
   },
 
   validateBurrito: (selectedIds: string[]) => {

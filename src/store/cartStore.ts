@@ -35,8 +35,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     
     let newTotal = 0;
     burritos.forEach(b => {
-      const { extraCost } = menuStore.calculateExtras(b.selectedToppings);
-      newTotal += baseP + extraCost;
+      const { extraCost, surchargeCost } = menuStore.calculateExtras(b.selectedToppings);
+      newTotal += baseP + extraCost + surchargeCost;
     });
     
     set({ total: newTotal });

@@ -16,7 +16,8 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
 
   const isValid = menuStore.validateBurrito(selectedToppings);
   const isOverLimit = selectedToppings.length >= FREE_TOPPINGS_LIMIT;
-  const { extraCost } = menuStore.calculateExtras(selectedToppings);
+  const { extraCost, surchargeCost } = menuStore.calculateExtras(selectedToppings);
+  const totalAddonCost = extraCost + surchargeCost;
 
   const [isStickyVisible, setIsStickyVisible] = useState(false);
   const [pendingExtraTopping, setPendingExtraTopping] = useState<string | null>(null);
@@ -62,9 +63,9 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
               </span>
             )}
           </span>
-          {extraCost > 0 && (
+          {totalAddonCost > 0 && (
             <span className="text-[#2EBA5B] font-bold bg-[#2EBA5B]/20 px-2 rounded-full border border-[#2EBA5B]/30 ml-1">
-              +${extraCost.toFixed(2)}
+              +${totalAddonCost.toFixed(2)}
             </span>
           )}
         </div>
@@ -83,9 +84,9 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
         <div className="text-caramba-muted text-sm font-medium flex-1">
           Seleccionados: <strong className={`text-lg ml-1 ${isOverLimit ? 'text-[#2EBA5B]' : isValid ? 'text-white' : 'text-caramba-red'}`}>{selectedToppings.length}</strong>
         </div>
-        {extraCost > 0 && (
+        {totalAddonCost > 0 && (
           <div className="bg-[#2EBA5B]/10 border border-[#2EBA5B]/20 text-[#2EBA5B] text-sm font-black px-3 py-1 rounded-lg flex items-center gap-2">
-            EXTRAS: +${extraCost.toFixed(2)}
+            EXTRAS: +${totalAddonCost.toFixed(2)}
           </div>
         )}
       </div>
@@ -116,7 +117,8 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                 const isAgotado = !topping.disponible;
                 const isDisabled = (isRice ? hasAnotherInExclusiveGroup : false) || isAgotado;
                 
-                // Mostrar badge de precio si agregarlo costará extra
+                // Badge de precio: surcharge (dentro del límite) o extra (fuera del límite)
+                const isSurcharge = !isActive && !isOverLimit && topping.surcharge > 0;
                 const isExtra = !isActive && isOverLimit && topping.price > 0;
 
                 const handleToggle = () => {
@@ -141,6 +143,12 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                     <span className="text-3xl mb-1">{topping.emoji}</span>
                     <span className="font-bold text-sm leading-tight text-center text-white">{topping.label}</span>
                     
+                    {isSurcharge && !isDisabled && (
+                      <span className="absolute top-1 right-1 bg-[#F59E0B]/90 backdrop-blur-sm text-white text-[10px] font-black px-1.5 py-0.5 rounded border border-white/20 shadow-md">
+                        +${topping.surcharge.toFixed(2)}
+                      </span>
+                    )}
+
                     {isExtra && !isDisabled && (
                       <span className="absolute top-1 right-1 bg-[#2EBA5B]/90 backdrop-blur-sm text-white text-[10px] font-black px-1.5 py-0.5 rounded border border-white/20 shadow-md">
                         +${topping.price.toFixed(2)}

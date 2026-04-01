@@ -4,7 +4,8 @@ import { useMenuStore } from '@/store/menuStore';
 export function buildWhatsAppURL(payload: OrderPayload): string {
   const { customer, quantity, burritos, total, mode } = payload;
   const menuStore = useMenuStore.getState();
-  const phone = menuStore.config?.whatsappPhone || '593987543310';
+  const rawPhone = menuStore.config?.whatsappPhone || '593987543310';
+  const phone = rawPhone.replace(/\D/g, ''); // WhatsApp requires strict numeric format (no plus, spaces, etc.)
 
   // Resuelve el label de un topping a partir de su id y opcionalmente añade el precio
   const resolveLabel = (id: string, includePrice = false): string => {
@@ -61,9 +62,16 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
     burritoLines,
   ].join('\n');
 
-  // Usar encodeURIComponent es el estándar correcto para parámetros de consulta (query strings)
-  // y usar api.whatsapp.com previene pérdida de datos o emojis en redesirecciones de wa.me en Desktop
   const encodedMessage = encodeURIComponent(message);
+  
+  // SOLUCIÓN FINAL:
+  // En iOS, las URL web (api.whatsapp.com o wa.me) abren esa ventana negra intermedia de Safari.
+  // Usar el esquema nativo `whatsapp://send` se salta esa ventana y abre la app directamente.
+  // IMPORTANTE: Solo aplicamos esto a iOS. Si lo aplicamos a Android, abre la lista de contactos,
+  // por lo que en Android y Desktop mantenemos la URL web oficial que funciona perfecto.
+  if (typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    return `whatsapp://send?phone=${phone}&text=${encodedMessage}`;
+  }
   
   return `https://api.whatsapp.com/send/?phone=${phone}&text=${encodedMessage}`;
 }
