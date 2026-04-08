@@ -49,7 +49,7 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
     ? `¡Hola CARAMBA! 🌯 Quiero realizar un pedido. (Ticket *${payload.ticketId}*)` 
     : '¡Hola CARAMBA! 🌯 Quiero realizar un pedido.';
 
-  const message = [
+  const messageParts = [
     titleLine,
     '',
     `🗓️ *Para entregar el:* ${customer.deliveryDay?.toUpperCase() || 'FIN DE SEMANA'} (19:00 - 21:00)`,
@@ -58,9 +58,15 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
     `📍 *Dirección:* ${customer.address}`,
     `📦 *Cantidad:* ${qtyLabel}`,
     `💵 *Total a pagar:* ${totalFormatted}`,
-    '',
-    burritoLines,
-  ].join('\n');
+  ];
+
+  if (payload.promo) {
+    messageParts.push(`🎁 *PROMOCIÓN APLICADA:* ${payload.promo}`);
+  }
+
+  messageParts.push('', burritoLines);
+
+  const message = messageParts.join('\n');
 
   const encodedMessage = encodeURIComponent(message);
   

@@ -72,17 +72,12 @@ export const useCartStore = create<CartState>((set, get) => ({
         if (has) {
           newSelected = newSelected.filter(t => t !== toppingId);
         } else {
-          if (toppingConfig?.exclusiveGroup) {
-            const isRice = toppingConfig.exclusiveGroup === 'arroz';
-            const isMeat = toppingConfig.exclusiveGroup === 'meat';
-            const allowExtraMeat = isMeat && newSelected.length >= config.freeToppingsLimit;
-
-            if (isRice || (isMeat && !allowExtraMeat)) {
-              const exclusiveIds = toppings
-                .filter(t => t.exclusiveGroup === toppingConfig.exclusiveGroup)
-                .map(t => t.id);
-              newSelected = newSelected.filter(t => !exclusiveIds.includes(t));
-            }
+          // Solo aplicar exclusividad para arroz (rice); las proteínas (meat) se pueden combinar.
+          if (toppingConfig?.exclusiveGroup === 'arroz') {
+            const exclusiveIds = toppings
+              .filter(t => t.exclusiveGroup === 'arroz')
+              .map(t => t.id);
+            newSelected = newSelected.filter(t => !exclusiveIds.includes(t));
           }
           newSelected.push(toppingId);
         }

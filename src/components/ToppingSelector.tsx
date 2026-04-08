@@ -1,7 +1,6 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { useMenuStore } from '@/store/menuStore';
 import { Info } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
 interface Props {
   burritoId: number;
@@ -17,10 +16,22 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
   const isValid = menuStore.validateBurrito(selectedToppings);
   const isOverLimit = selectedToppings.length >= FREE_TOPPINGS_LIMIT;
   const { extraCost, surchargeCost } = menuStore.calculateExtras(selectedToppings);
-  const totalAddonCost = extraCost + surchargeCost;
+
+  // ¿Hay doble proteína dentro del pool libre?
+  const isDoubleProtein = selectedToppings
+    .slice(0, FREE_TOPPINGS_LIMIT)
+    .filter(id => menuStore.toppings.find(t => t.id === id)?.exclusiveGroup === 'meat')
+    .length >= 2;
+
+  // El surchargeCost de la/s proteína/s no se muestra como EXTRAS en la parte superior.
+  // Solo se mostrarán los excedentes de cantidad en EXTRAS (mantenemos la pastilla limpia).
+  const displayAddonCost = extraCost;
 
   const [isStickyVisible, setIsStickyVisible] = useState(false);
+  // Modal de confirmación de límite de 8 ingredientes al agregar un extra normal
   const [pendingExtraTopping, setPendingExtraTopping] = useState<string | null>(null);
+  // Modal de confirmación para doble proteína dentro del pool libre
+  const [pendingDoubleProtein, setPendingDoubleProtein] = useState<string | null>(null);
   const staticCounterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,6 +51,20 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
     }
     return groups;
   }, [selectedToppings]);
+
+  // Calcular el precio adicional si se agrega la segunda proteína (para el modal)
+  const doubleProteinModalInfo = useMemo(() => {
+    if (!pendingDoubleProtein) return null;
+    const newTopping = menuStore.toppings.find(t => t.id === pendingDoubleProtein);
+    if (!newTopping) return null;
+
+    // Simular el costo cronológicamente: al añadir esta proteína, actuará como adicional (así que sumará su .price)
+    const basePrice = menuStore.config?.basePrice ?? 0;
+    const addedCost = newTopping.price;
+    const newTotal = basePrice + surchargeCost + addedCost;
+
+    return { topping: newTopping, newTotal, addedCost };
+  }, [pendingDoubleProtein, selectedToppings, menuStore, surchargeCost]);
 
   return (
     <div className="flex flex-col gap-4 w-full animate-fade-in relative">
@@ -63,9 +88,9 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
               </span>
             )}
           </span>
-          {totalAddonCost > 0 && (
+          {displayAddonCost > 0 && (
             <span className="text-[#2EBA5B] font-bold bg-[#2EBA5B]/20 px-2 rounded-full border border-[#2EBA5B]/30 ml-1">
-              +${totalAddonCost.toFixed(2)}
+              +${displayAddonCost.toFixed(2)}
             </span>
           )}
         </div>
@@ -84,9 +109,9 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
         <div className="text-caramba-muted text-sm font-medium flex-1">
           Seleccionados: <strong className={`text-lg ml-1 ${isOverLimit ? 'text-[#2EBA5B]' : isValid ? 'text-white' : 'text-caramba-red'}`}>{selectedToppings.length}</strong>
         </div>
-        {totalAddonCost > 0 && (
+        {displayAddonCost > 0 && (
           <div className="bg-[#2EBA5B]/10 border border-[#2EBA5B]/20 text-[#2EBA5B] text-sm font-black px-3 py-1 rounded-lg flex items-center gap-2">
-            EXTRAS: +${totalAddonCost.toFixed(2)}
+            EXTRAS: +${displayAddonCost.toFixed(2)}
           </div>
         )}
       </div>
@@ -114,14 +139,22 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                   : false;
                   
                 const isRice = topping.exclusiveGroup === 'arroz';
+                const isMeat = topping.exclusiveGroup === 'meat';
                 const isAgotado = !topping.disponible;
                 const isDisabled = (isRice ? hasAnotherInExclusiveGroup : false) || isAgotado;
                 
-                // Badge de precio: surcharge (dentro del límite) o extra (fuera del límite)
-                const isSurcharge = !isActive && !isOverLimit && topping.surcharge > 0;
+                // Badge de precio: surcharge (solo para no-proteínas dentro del límite) o extra (fuera del límite)
+                const isSurcharge = !isActive && !isOverLimit && topping.surcharge > 0 && topping.exclusiveGroup !== 'meat';
                 const isExtra = !isActive && isOverLimit && topping.price > 0;
+                // Badge de combo (segunda o tercera proteína elegida dentro del pool libre)
+                const isComboProtein = !isActive && !isOverLimit && isMeat && hasAnotherInExclusiveGroup && topping.price > 0;
 
                 const handleToggle = () => {
+                  if (!isActive && isMeat && hasAnotherInExclusiveGroup && !isOverLimit) {
+                    // Segunda proteína dentro del pool libre → modal de confirmación de doble proteína
+                    setPendingDoubleProtein(topping.id);
+                    return;
+                  }
                   if (!isActive && selectedToppings.length === FREE_TOPPINGS_LIMIT) {
                     const isRiceSwap = isRice && hasAnotherInExclusiveGroup;
                     if (!isRiceSwap) {
@@ -143,7 +176,13 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                     <span className="text-3xl mb-1">{topping.emoji}</span>
                     <span className="font-bold text-sm leading-tight text-center text-white">{topping.label}</span>
                     
-                    {isSurcharge && !isDisabled && (
+                    {isComboProtein && !isDisabled && (
+                      <span className="absolute top-1 right-1 bg-[#F59E0B]/90 backdrop-blur-sm text-white text-[10px] font-black px-1.5 py-0.5 rounded border border-white/20 shadow-md">
+                        +${topping.price.toFixed(2)}
+                      </span>
+                    )}
+
+                    {isSurcharge && !isDisabled && !isComboProtein && (
                       <span className="absolute top-1 right-1 bg-[#F59E0B]/90 backdrop-blur-sm text-white text-[10px] font-black px-1.5 py-0.5 rounded border border-white/20 shadow-md">
                         +${topping.surcharge.toFixed(2)}
                       </span>
@@ -168,12 +207,12 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
         );
       })}
 
-      {/* Modal Personalizado para Confirmar Extras */}
+      {/* Modal: Confirmar Extras (>8 ingredientes) */}
       {pendingExtraTopping && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setPendingExtraTopping(null)}>
           <div 
             className="bg-caramba-surface border-2 border-caramba-border rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 animate-slide-up"
-            onClick={e => e.stopPropagation()} // Previene cerrar si hace clic en la tarjeta
+            onClick={e => e.stopPropagation()}
           >
             <h3 className="text-xl font-black text-white uppercase tracking-wide flex items-center gap-2">
               <span className="text-2xl">🌯</span> Límite alcanzado
@@ -203,6 +242,59 @@ const ToppingSelector = React.memo(function ToppingSelector({ burritoId, selecte
                 className="flex-1 bg-[#2EBA5B] text-white py-3 rounded-xl font-bold uppercase tracking-wider active:scale-95 transition-all shadow-[0_0_20px_rgba(46,186,91,0.3)] text-xs"
               >
                 Sí, aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirmar Doble Proteína */}
+      {pendingDoubleProtein && doubleProteinModalInfo && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setPendingDoubleProtein(null)}>
+          <div 
+            className="bg-caramba-surface border-2 border-[#F59E0B]/50 rounded-2xl p-6 max-w-sm w-full shadow-2xl shadow-[#F59E0B]/10 flex flex-col gap-4 animate-slide-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🥩</span>
+              <h3 className="text-xl font-black text-white uppercase tracking-wide leading-tight">
+                ¡Doble Proteína!
+              </h3>
+            </div>
+
+            <p className="text-caramba-text text-sm font-medium leading-relaxed">
+              Estás agregando <strong className="text-white">{doubleProteinModalInfo.topping.emoji} {doubleProteinModalInfo.topping.label}</strong> como proteína adicional.
+            </p>
+
+            <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-4 py-3 flex flex-col gap-1">
+              <p className="text-[#F59E0B] text-xs font-bold uppercase tracking-wider">Ajuste de precio</p>
+              <p className="text-white text-sm font-medium">
+                Costo adicional: <strong className="text-[#F59E0B] text-base">+${doubleProteinModalInfo.addedCost.toFixed(2)}</strong>
+              </p>
+              <p className="text-caramba-muted text-xs">
+                Total con proteínas: <strong className="text-white">${doubleProteinModalInfo.newTotal.toFixed(2)}</strong> (antes de otros extras)
+              </p>
+            </div>
+
+            <p className="text-caramba-muted text-xs leading-relaxed">
+              La doble proteína tiene un precio especial. Puedes quitarla en cualquier momento.
+            </p>
+            
+            <div className="flex gap-3 mt-1">
+              <button 
+                onClick={() => setPendingDoubleProtein(null)}
+                className="flex-1 bg-transparent border-2 border-caramba-border text-white py-3 rounded-xl font-bold uppercase tracking-wider active:scale-95 transition-all text-xs"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  onToggle(burritoId, pendingDoubleProtein);
+                  setPendingDoubleProtein(null);
+                }}
+                className="flex-1 bg-[#F59E0B] text-black py-3 rounded-xl font-bold uppercase tracking-wider active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] text-xs"
+              >
+                🥩 Sí, doble proteína
               </button>
             </div>
           </div>

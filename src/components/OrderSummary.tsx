@@ -15,6 +15,11 @@ export default function OrderSummary({ onBack }: Props) {
   const menuStore = useMenuStore();
   const [isSending, setIsSending] = useState(false);
 
+  // Determinar promoción aplicable (la que pida más cantidad que a la vez se cumpla)
+  const appliedPromo = menuStore.promociones
+    .filter(p => quantity >= p.condicion_valor)
+    .sort((a, b) => b.condicion_valor - a.condicion_valor)[0] || null;
+
   const handleSend = async () => {
     // Guard: evitar spameo y pedidos duplicados
     if (isSending) return;
@@ -29,6 +34,7 @@ export default function OrderSummary({ onBack }: Props) {
       burritos,
       total,
       ticketId,
+      promo: appliedPromo ? appliedPromo.recompensa : null
     };
 
     // PASO 1: Redirigir a WhatsApp de forma SÍNCRONA antes de cualquier await.
@@ -46,10 +52,14 @@ export default function OrderSummary({ onBack }: Props) {
       const ingredientsList: string[] = [];
       const extrasList: { nombre: string; precio: number }[] = [];
 
-      const { extraIds } = menuStore.calculateExtras(sourceBurrito.selectedToppings);
+      const { extraIds, surchargeDetails } = menuStore.calculateExtras(sourceBurrito.selectedToppings);
       const baseIds = sourceBurrito.selectedToppings.filter(id => !extraIds.includes(id));
 
       ingredientsList.push(...menuStore.sortToppings(baseIds).map(resolveLabel));
+
+      surchargeDetails.forEach(sConfig => {
+        extrasList.push({ nombre: sConfig.label, precio: sConfig.amount });
+      });
 
       extraIds.forEach(eid => {
         const topping = menuStore.toppings.find(t => t.id === eid);
@@ -61,15 +71,24 @@ export default function OrderSummary({ onBack }: Props) {
       if (mode !== 'same') {
         // Modo diferente: añadir ingredientes de los burritos restantes separados por '---'
         burritos.slice(1).forEach((b, i) => {
-          const { extraIds: eIds } = menuStore.calculateExtras(b.selectedToppings);
+          const { extraIds: eIds, surchargeDetails: sDetails } = menuStore.calculateExtras(b.selectedToppings);
           const bIds = b.selectedToppings.filter(id => !eIds.includes(id));
           ingredientsList.push(`--- Burrito ${i + 2}`);
           ingredientsList.push(...menuStore.sortToppings(bIds).map(resolveLabel));
+          
+          sDetails.forEach(sConfig => {
+            extrasList.push({ nombre: `[B${i+2}] ${sConfig.label}`, precio: sConfig.amount });
+          });
+
           eIds.forEach(eid => {
             const topping = menuStore.toppings.find(t => t.id === eid);
-            if (topping) extrasList.push({ nombre: topping.label, precio: topping.price || 0 });
+            if (topping) extrasList.push({ nombre: `[B${i+2}] ${topping.label}`, precio: topping.price || 0 });
           });
         });
+      }
+
+      if (appliedPromo) {
+        extrasList.push({ nombre: `Promoción: ${appliedPromo.recompensa}`, precio: 0 });
       }
 
       await supabase.from('pedidos').insert({
@@ -118,22 +137,30 @@ export default function OrderSummary({ onBack }: Props) {
         {/* Burritos */}
         <div className="flex flex-col gap-5 pb-5 border-b-2 border-caramba-border">
           {burritos.map((b, i) => {
-            const { extraCost, extraIds, surchargeCost, surchargeIds } = menuStore.calculateExtras(b.selectedToppings);
+            const { extraCost, extraIds, surchargeCost, surchargeDetails } = menuStore.calculateExtras(b.selectedToppings);
             const baseIds = b.selectedToppings.filter(id => !extraIds.includes(id));
+            const burritoTotal = (menuStore.config?.basePrice || 0) + extraCost + surchargeCost;
 
             return (
               <div key={b.id} className="flex flex-col gap-1.5">
-                <span className="text-caramba-red font-black text-sm uppercase tracking-wider">
-                  Burrito {i + 1}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-caramba-red font-black text-sm uppercase tracking-wider">
+                    Burrito {i + 1}
+                  </span>
+                  {quantity >= 2 && (
+                    <span className="text-caramba-muted font-bold text-xs bg-caramba-border/50 px-2 py-0.5 rounded-full">
+                      ${burritoTotal.toFixed(2)}
+                    </span>
+                  )}
+                </div>
                 <span className="text-caramba-text text-sm leading-relaxed font-medium">
                   {menuStore.sortToppings(baseIds).map(resolveLabel).join(', ')}
                 </span>
-                {surchargeIds.length > 0 && (
-                  <span className="text-[#F59E0B] text-sm leading-relaxed font-bold mt-0.5">
-                    🥩 Carne de Res (+${surchargeCost.toFixed(2)})
+                {surchargeDetails.map((sConfig, idx) => (
+                  <span key={idx} className="text-[#F59E0B] text-sm leading-relaxed font-bold mt-0.5">
+                    🥩 {sConfig.label} (+${sConfig.amount.toFixed(2)})
                   </span>
-                )}
+                ))}
                 {extraIds.length > 0 && (
                   <span className="text-[#2EBA5B] text-sm leading-relaxed font-bold mt-0.5">
                     ✨ Extras (+${extraCost.toFixed(2)}): {menuStore.sortToppings(extraIds).map(resolveLabel).join(', ')}
@@ -154,6 +181,18 @@ export default function OrderSummary({ onBack }: Props) {
           </span>
         </div>
       </div>
+
+      {/* Promoción Aplicada Banner */}
+      {appliedPromo && (
+        <div className="flex flex-col gap-1 text-[var(--accent)] bg-[var(--accent)]/10 p-4 rounded-xl border border-[var(--accent)]/20 shadow-md">
+          <div className="flex items-center gap-3 font-bold uppercase tracking-wider text-sm">
+            🎁 Promo Aplicada
+          </div>
+          <span className="text-sm font-medium pl-8 text-white">
+            ¡Agregaremos <strong>{appliedPromo.recompensa}</strong> a tu pedido completamente GRATIS! 🥳
+          </span>
+        </div>
+      )}
 
       <div className="flex gap-3 mt-6">
         <button 

@@ -28,4 +28,5 @@ export interface OrderPayload {
   burritos: BurritoConfig[];  // length === quantity
   total: number;              // quantity * BASE_PRICE
   ticketId?: string;          // Código corto para validar el pedido
+  promo?: string | null;      // Promoción aplicada (si existe)
 }
