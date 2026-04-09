@@ -25,7 +25,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   quantity: 1,
   mode: 'same',
   burritos: [emptyBurrito(0)],
-  customer: { name: '', address: '', phone: '', deliveryDay: '' },
+  customer: { name: '', address: '', phone: '', deliveryDay: '', paymentMethod: '' },
   total: 0, 
 
   recalculateTotal: () => {
@@ -105,7 +105,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({
       quantity: 1, mode: 'same',
       burritos: [emptyBurrito(0)],
-      customer: { name: '', address: '', phone: '', deliveryDay: '' },
+      customer: { name: '', address: '', phone: '', deliveryDay: '', paymentMethod: '' },
       total: baseP,
     });
   },

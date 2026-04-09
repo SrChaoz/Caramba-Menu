@@ -52,16 +52,18 @@ export function buildWhatsAppURL(payload: OrderPayload): string {
   const messageParts = [
     titleLine,
     '',
-    `🗓️ *Para entregar el:* ${customer.deliveryDay?.toUpperCase() || 'FIN DE SEMANA'} (19:00 - 21:00)`,
-    `👤 *Nombre:* ${customer.name}`,
-    `📞 *Teléfono:* ${customer.phone}`,
-    `📍 *Dirección:* ${customer.address}`,
-    `📦 *Cantidad:* ${qtyLabel}`,
-    `💵 *Total a pagar:* ${totalFormatted}`,
+    `*Para entregar el:* ${customer.deliveryDay?.toUpperCase() || 'FIN DE SEMANA'} (19:00 - 21:00)`,
+    `*Nombre:* ${customer.name}`,
+    `*Teléfono:* ${customer.phone}`,
+    `*Dirección:* ${customer.address}`,
+    `*Cantidad:* ${qtyLabel}`,
+    `*Método de Pago:* ${customer.paymentMethod}`,
+    `*Total a pagar:* ${totalFormatted}`,
+    ` `,
   ];
 
   if (payload.promo) {
-    messageParts.push(`🎁 *PROMOCIÓN APLICADA:* ${payload.promo}`);
+    messageParts.push(`*PROMOCIÓN APLICADA:* ${payload.promo}`);
   }
 
   messageParts.push('', burritoLines);

@@ -18,6 +18,7 @@ export interface CustomerInfo {
   address: string;
   phone: string;
   deliveryDay: DeliveryDay;
+  paymentMethod: 'Efectivo' | 'Transferencia' | '';
 }
 
 // Payload completo para buildWhatsAppURL

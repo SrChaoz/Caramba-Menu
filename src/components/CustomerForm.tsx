@@ -1,5 +1,5 @@
 import { useCartStore } from '@/store/cartStore';
-import { ClipboardList, Truck, ArrowRight, Calendar } from 'lucide-react';
+import { ClipboardList, Truck, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { DeliveryDay } from '@/types';
 
 interface Props {
@@ -85,6 +85,26 @@ export default function CustomerForm({ onNext }: Props) {
         </div>
       </div>
 
+      <div className="bg-caramba-surface/50 p-4 rounded-2xl border border-caramba-border mt-2">
+        <label className="text-caramba-muted text-sm font-bold uppercase mb-3 flex items-center gap-2 tracking-wider">
+          <CreditCard className="w-4 h-4 text-caramba-red" /> ¿Cómo vas a pagar?
+        </label>
+        <div className="flex flex-col gap-2">
+          {(['Efectivo', 'Transferencia'] as const).map((method) => (
+            <button
+              key={method}
+              onClick={() => setCustomer({ paymentMethod: method })}
+              className={`w-full py-4 px-4 rounded-xl font-bold uppercase tracking-wide transition-all ${customer.paymentMethod === method
+                  ? 'bg-caramba-red text-white shadow-[0_0_15px_rgba(192,0,12,0.4)] scale-100'
+                  : 'bg-caramba-bg border-2 border-caramba-border text-caramba-muted hover:border-caramba-red/50 hover:text-white'
+                }`}
+            >
+              {method}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-1 text-[#2EBA5B] bg-[#2EBA5B]/10 p-4 rounded-xl border border-[#2EBA5B]/20 mt-2">
         <div className="flex items-center gap-3 font-bold">
           <Truck className="w-6 h-6" /> Envío GRATIS
@@ -92,7 +112,7 @@ export default function CustomerForm({ onNext }: Props) {
         <span className="text-xs opacity-80 pl-9">*Aplica términos y condiciones</span>
       </div>
 
-      <button onClick={onNext} disabled={!isValid} className="btn-primary mt-6 text-lg py-5 flex items-center justify-center gap-2">
+      <button onClick={onNext} disabled={!isValid || customer.paymentMethod === ''} className="btn-primary mt-6 text-lg py-5 flex items-center justify-center gap-2">
         VER RESUMEN <ArrowRight className="w-5 h-5" />
       </button>
     </div>

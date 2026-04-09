@@ -3,7 +3,7 @@ import { useCartStore } from '@/store/cartStore';
 import { buildWhatsAppURL } from '@/lib/whatsapp';
 import { useMenuStore } from '@/store/menuStore';
 import { supabase } from '@/lib/supabase';
-import { Receipt, User, MapPin, Package, ArrowLeft, Calendar, Phone } from 'lucide-react';
+import { Receipt, User, MapPin, Package, ArrowLeft, Calendar, Phone, CreditCard } from 'lucide-react';
 
 interface Props {
   onBack: () => void;
@@ -102,7 +102,8 @@ export default function OrderSummary({ onBack }: Props) {
         total: total,
         estado: 'no_confirmado',
         ingredientes: ingredientsList,
-        extras: extrasList
+        extras: extrasList,
+        metodo_pago: customer.paymentMethod || 'Efectivo'
       });
     } catch (error) {
       console.error('Error guardando en Supabase:', error);
@@ -131,6 +132,9 @@ export default function OrderSummary({ onBack }: Props) {
           </div>
           <div className="flex items-center gap-3 text-caramba-red text-sm font-black uppercase mt-1">
             <Calendar className="w-6 h-6" /> Entrega: {customer.deliveryDay} (19:00 - 21:00)
+          </div>
+          <div className="flex items-center gap-3 text-caramba-text text-sm font-bold mt-1">
+            <CreditCard className="w-6 h-6" /> <span>Método de pago: {customer.paymentMethod}</span>
           </div>
         </div>
 
