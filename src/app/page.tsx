@@ -2,52 +2,72 @@
 
 import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
+import { useMenuStore } from '@/store/menuStore';
+
+// Pasos
 import StepQty from '@/components/StepQty';
-import StepMode from '@/components/StepMode';
-import ToppingSelector from '@/components/ToppingSelector';
-import BurritoTabs from '@/components/BurritoTabs';
+import StepMenu from '@/components/StepMenu';
+import ItemTabs from '@/components/ItemTabs';
 import CustomerForm from '@/components/CustomerForm';
 import OrderSummary from '@/components/OrderSummary';
-import { useMenuStore } from '@/store/menuStore';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import ProductModeModal from '@/components/ProductModeModal';
+
+import { ArrowLeft } from 'lucide-react';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FLUJO UNIFICADO:  Qty/Menu → (ProductModeModal?) → Customize → Customer → Summary
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const { isLoading, error, fetchMenu, productos } = useMenuStore();
+  const { getTotalQuantity, getConfigurableGroupsNeedingMode } = useCartStore();
+
+  const isMultiProductFlow = !isLoading && productos.length > 1;
+  const isSingleProductFlow = !isLoading && productos.length === 1;
+
+  // Pasos:
+  // 1: Menu (StepQty / StepMenu)
+  // 2: Personalización (ItemTabs)
+  // 3: Datos del cliente (CustomerForm)
+  // 4: Resumen (OrderSummary)
   const [step, setStep] = useState(1);
-  const { quantity, mode, burritos, toggleTopping } = useCartStore();
-  const { isLoading, error, fetchMenu, validateBurrito } = useMenuStore();
+  const [showModeModal, setShowModeModal] = useState(false);
 
   useEffect(() => {
     fetchMenu();
   }, []);
 
-  const handleNextFromQty = () => {
-    if (quantity > 1) {
-      setStep(2);
+  // ── Funciones de navegación ────────────────────────────────
+
+  const handleNextFromQtyOrMenu = () => {
+    const groupsNeedingMode = getConfigurableGroupsNeedingMode();
+    if (groupsNeedingMode.length > 0) {
+      setShowModeModal(true);
     } else {
-      setStep(3);
+      setStep(2);
     }
   };
 
-  const handleConfirmMode = () => {
-    setStep(3);
+  const handleModeConfirm = () => {
+    setShowModeModal(false);
+    setStep(2);
   };
 
-  const handleNextFromToppings = () => {
-    setStep(4);
+  const handleModeBack = () => {
+    setShowModeModal(false);
   };
 
-  const handleNextFromCustomer = () => {
-    setStep(5);
-  };
+  const handleNextFromCustomize = () => setStep(3);
+  const handleNextFromCustomer = () => setStep(4);
 
   const handleBack = () => {
-    if (step === 3 && quantity === 1) {
-      setStep(1); // Skip mode selection if qty is 1
-    } else if (step > 1) {
-      setStep(step - 1);
-    }
+    if (step > 1) setStep(step - 1);
   };
 
+  // ── Progreso visual ────────────────────────────────────────
+  const visualSteps = [1, 2, 3, 4];
+
+  // ── Loading / Error ────────────────────────────────────────
   if (isLoading) {
     return (
       <main className="min-h-screen pt-24 pb-12 px-4 max-w-md mx-auto flex items-center justify-center">
@@ -75,24 +95,22 @@ export default function Home() {
       {/* Progress dots */}
       <div className="flex justify-center gap-2 mb-8 relative">
         {step > 1 && (
-          <button 
-            onClick={handleBack} 
+          <button
+            onClick={handleBack}
             className="absolute left-0 top-1/2 -translate-y-1/2 text-caramba-muted hover:text-white transition-colors p-2 -ml-2 rounded-full active:bg-white/10 flex items-center justify-center"
             aria-label="Volver"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
         )}
-        {[1, 3, 4, 5].map((s) => {
-          // Visual steps map to logical steps
-          const isActive = s === step || (s === 3 && step === 2);
-          const isPast = s < step && !(s === 3 && step === 2);
-          
+        {visualSteps.map(s => {
+          const isActive = s === step;
+          const isPast = s < step;
           return (
-            <div 
-              key={s} 
+            <div
+              key={s}
               className={`h-2 rounded-full transition-all duration-300 ${
-                isActive ? 'w-8 bg-caramba-red shadow-[0_0_10px_rgba(192,0,12,0.5)]' : 
+                isActive ? 'w-8 bg-caramba-red shadow-[0_0_10px_rgba(192,0,12,0.5)]' :
                 isPast ? 'w-4 bg-caramba-red/40' : 'w-4 bg-caramba-border'
               }`}
             />
@@ -101,39 +119,30 @@ export default function Home() {
       </div>
 
       <div className="flex flex-col gap-6 relative">
-        {step === 1 && <StepQty onNext={handleNextFromQty} />}
-        
-        {step === 2 && <StepMode onConfirm={handleConfirmMode} onBack={handleBack} />}
-        
-        {step === 3 && mode === 'same' && (
-          <div className="animate-fade-in flex flex-col items-center">
-            <ToppingSelector 
-              burritoId={burritos[0].id}
-              selectedToppings={burritos[0].selectedToppings} 
-              onToggle={toggleTopping} 
-            />
-            {/* Same mode global continue button */}
-            <div className="w-full mt-4 bg-caramba-bg pt-2 pb-6 sticky bottom-0 border-t border-caramba-border/50">
-              <button 
-                onClick={handleNextFromToppings}
-                disabled={!validateBurrito(burritos[0].selectedToppings)} 
-                className="btn-primary text-lg py-5 shadow-lg shadow-black/50 flex items-center justify-center gap-2 w-full"
-              >
-                {validateBurrito(burritos[0].selectedToppings) ? (
-                  <>CONTINUAR <ArrowRight className="w-5 h-5" /></>
-                ) : `COMPLETA TU BURRITO`}
-              </button>
-            </div>
-          </div>
+
+        {/* ── PASO 1 ─────────────────────────────────────────── */}
+        {step === 1 && isSingleProductFlow && (
+          <StepQty onNext={handleNextFromQtyOrMenu} />
+        )}
+        {step === 1 && isMultiProductFlow && (
+          <StepMenu onNext={handleNextFromQtyOrMenu} />
         )}
 
-        {step === 3 && mode === 'individual' && (
-          <BurritoTabs onNext={handleNextFromToppings} />
+        {showModeModal && (
+          <ProductModeModal onConfirm={handleModeConfirm} onBack={handleModeBack} />
         )}
 
-        {step === 4 && <CustomerForm onNext={handleNextFromCustomer} />}
-        
-        {step === 5 && <OrderSummary onBack={handleBack} />}
+        {/* ── PASO 2: Personalización ─────────────────────────── */}
+        {step === 2 && (
+          <ItemTabs onNext={handleNextFromCustomize} />
+        )}
+
+        {/* ── PASO 3: Datos del cliente ─────────────────────── */}
+        {step === 3 && <CustomerForm onNext={handleNextFromCustomer} />}
+
+        {/* ── PASO 4: Resumen ──────────────────────────────── */}
+        {step === 4 && <OrderSummary onBack={handleBack} />}
+
       </div>
     </main>
   );

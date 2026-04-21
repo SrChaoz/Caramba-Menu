@@ -1,18 +1,30 @@
+// ============================================================
+// TIPOS GLOBALES — Sistema Caramba
+// ============================================================
+
 import type { Topping } from '@/store/menuStore';
 
-// Un burrito configurado individualmente
-export interface BurritoConfig {
-  id: number;             // índice 0-based (Burrito 1 = id 0)
-  selectedToppings: Topping['id'][];  // array de topping ids
+// Tipo de plato
+export type ProductoTipo = 'configurable' | 'simple';
+
+// Un ítem en el carrito (puede ser cualquier tipo de plato)
+export interface CartItem {
+  instanceId: string;       // UUID local único por ítem
+  productoId: string;       // 'burrito-armalo', 'arroz-chino', etc.
+  productoNombre: string;   // Nombre para display
+  productoEmoji: string;    // Emoji del plato
+  tipo: ProductoTipo;       // 'configurable' = toppings | 'simple' = solo nota
+  selectedToppings: Topping['id'][];
+  nota?: string;            // Para platos 'simple': indicaciones especiales
+  basePrice: number;        // Precio base del plato
 }
 
-// Modo de configuración cuando qty > 1
-export type BurritoMode = 'same' | 'individual';
-
-// Tipos permitidos para días de entrega
-export type DeliveryDay = 'Viernes' | 'Sábado' | 'Domingo' | '';
+// Modo de configuración por grupo de plato (cuando qty > 1 del mismo plato configurable)
+export type ItemMode = 'same' | 'individual';
 
 // Información del cliente
+export type DeliveryDay = 'Viernes' | 'Sábado' | 'Domingo' | '';
+
 export interface CustomerInfo {
   name: string;
   address: string;
@@ -21,13 +33,18 @@ export interface CustomerInfo {
   paymentMethod: 'Efectivo' | 'Transferencia' | '';
 }
 
-// Payload completo para buildWhatsAppURL
+// Payload completo para buildWhatsAppURL y guardado en DB
 export interface OrderPayload {
   customer: CustomerInfo;
-  quantity: number;
-  mode: BurritoMode;
-  burritos: BurritoConfig[];  // length === quantity
-  total: number;              // quantity * BASE_PRICE
-  ticketId?: string;          // Código corto para validar el pedido
-  promo?: string | null;      // Promoción aplicada (si existe)
+  items: CartItem[];
+  total: number;
+  ticketId?: string;
+  promo?: string | null;
 }
+
+// Compatibilidad (se irá eliminando)
+export interface BurritoConfig {
+  id: number;
+  selectedToppings: Topping['id'][];
+}
+export type BurritoMode = 'same' | 'individual';

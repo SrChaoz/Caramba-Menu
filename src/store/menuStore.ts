@@ -1,23 +1,44 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 
+// ============================================================
+// INTERFACES — Mapeadas al esquema de PRODUCCIÓN (mixiwhgzaoyiaqsangez)
+// ============================================================
+
+export interface Producto {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  precio_base: number;
+  min_toppings: number;
+  free_toppings_limit: number;
+  orden: number;
+  activo: boolean;
+  tipo: 'configurable' | 'simple';
+  emoji: string;
+  imagen_url: string | null;
+}
+
 export interface ToppingCategory {
   id: string;
+  productoId: string;
   name: string;
   required?: boolean;
+  maxSeleccion: number | null; 
 }
 
 export interface Topping {
-  id: string;      
-  categoryId: string; 
-  label: string;   
-  emoji: string;   
-  exclusiveGroup?: string; 
-  price: number;        // costo cuando es extra real (9+ ingredientes)
-  surcharge: number;    // costo adicional cuando está dentro del límite como proteína primaria (ej. carne-res = $0.50)
-  comboPrice: number;   // costo adicional cuando esta proteína es secundaria en un combo (ej. pollo como segunda carne = $1.00)
+  id: string;
+  categoryId: string;
+  label: string;
+  emoji: string;
+  exclusiveGroup?: string;
+  price: number; 
+  surcharge: number;
+  comboPrice: number;
   disponible: boolean;
 }
+
 export interface Promocion {
   id: string;
   nombre: string;
@@ -27,33 +48,38 @@ export interface Promocion {
   activo: boolean;
 }
 
-interface MenuConfig {
-  basePrice: number;
-  minToppings: number;
-  freeToppingsLimit: number;
-  whatsappPhone: string;
-}
-
 interface MenuState {
-  config: MenuConfig | null;
+  productos: Producto[];
   categories: ToppingCategory[];
   toppings: Topping[];
   promociones: Promocion[];
+  whatsappPhone: string;
   isLoading: boolean;
   error: string | null;
   fetchMenu: () => Promise<void>;
   
   // Helpers
-  calculateExtras: (selectedIds: string[]) => { extraCost: number; extraIds: string[]; surchargeCost: number; surchargeIds: string[]; surchargeDetails: { id: string; amount: number; label: string }[] };
-  validateBurrito: (selectedIds: string[]) => boolean;
+  getProductConfig: (productoId: string) => Producto | null;
+  getCategoriesByProduct: (productoId: string) => ToppingCategory[];
+  getToppingsByProduct: (productoId: string) => Topping[];
+  
+  calculateExtras: (productoId: string, selectedIds: string[]) => { 
+    extraCost: number; 
+    extraIds: string[]; 
+    surchargeCost: number; 
+    surchargeIds: string[]; 
+    surchargeDetails: { id: string; amount: number; label: string }[] 
+  };
+  validateItem: (productoId: string, selectedIds: string[]) => boolean;
   sortToppings: (selectedIds: string[]) => string[];
 }
 
 export const useMenuStore = create<MenuState>((set, get) => ({
-  config: null,
+  productos: [],
   categories: [],
   toppings: [],
   promociones: [],
+  whatsappPhone: '',
   isLoading: true,
   error: null,
 
@@ -61,47 +87,61 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      // Parallel fetch
       const [confRes, prodRes, catRes, topRes, promoRes] = await Promise.all([
         supabase.from('restaurante_config').select('*'),
-        supabase.from('menu_productos').select('*').eq('id', 'burrito-armalo').single(),
-        supabase.from('menu_categorias').select('*').eq('producto_id', 'burrito-armalo').order('orden'),
-        supabase.from('menu_toppings').select('*').order('orden'),
+        supabase.from('menu_productos').select('*').eq('activo', true).order('orden'),
+        supabase.from('menu_categorias').select('*').order('orden'),
+        supabase.from('menu_toppings').select('*').eq('disponible', true).order('orden'),
         supabase.from('promociones').select('*').eq('activo', true).order('condicion_valor', { ascending: false })
       ]);
 
-      if (prodRes.error) throw prodRes.error;
-      
-      const config: MenuConfig = {
-        basePrice: Number(prodRes.data.precio_base),
-        minToppings: Number(prodRes.data.min_toppings),
-        freeToppingsLimit: Number(prodRes.data.free_toppings_limit),
-        whatsappPhone: confRes.data?.find(c => c.clave === 'whatsapp_phone')?.valor || ''
-      };
+      const productos: Producto[] = (prodRes.data || []).map(p => ({
+        id: p.id,
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        precio_base: Number(p.precio_base),
+        min_toppings: Number(p.min_toppings ?? 0),
+        free_toppings_limit: Number(p.free_toppings_limit ?? 0),
+        orden: Number(p.orden ?? 0),
+        activo: p.activo,
+        tipo: (p.tipo ?? 'configurable') as 'configurable' | 'simple',
+        emoji: p.emoji ?? '🍽️',
+        imagen_url: p.imagen_url ?? null,
+      }));
 
       const categories: ToppingCategory[] = (catRes.data || []).map(c => ({
         id: c.id,
+        productoId: c.producto_id,
         name: c.nombre,
-        required: c.es_requerido
+        required: c.es_requerido,
+        maxSeleccion: c.max_seleccion ?? null,
       }));
 
-      // Filter toppings belonging only to these categories
-      const catIds = categories.map(c => c.id);
-      const toppings: Topping[] = (topRes.data || [])
-        .filter(t => catIds.includes(t.categoria_id) && !t.oculto)
-        .map(t => ({
-          id: t.id,
-          categoryId: t.categoria_id,
-          label: t.nombre,
-          emoji: t.emoji || '',
-          exclusiveGroup: t.exclusive_group,
-          price: Number(t.precio_extra),
-          surcharge: Number(t.precio_surcharge ?? 0),
-          comboPrice: Number(t.precio_proteina_combo ?? 0),
-          disponible: t.disponible
-        }));
+      const toppings: Topping[] = (topRes.data || []).map(t => ({
+        id: t.id,
+        categoryId: t.categoria_id,
+        label: t.nombre,
+        emoji: t.emoji || '',
+        exclusiveGroup: t.exclusive_group,
+        price: Number(t.precio_extra),
+        surcharge: Number(t.precio_surcharge ?? 0),
+        comboPrice: Number(t.precio_proteina_combo ?? 0),
+        disponible: t.disponible
+      }));
 
-      set({ config, categories, toppings, promociones: promoRes.data || [], isLoading: false });
+      // Extraer whatsapp_phone de restaurante_config
+      const rawPhone = confRes.data?.find(c => c.clave === 'whatsapp_phone')?.valor || '';
+      // El valor puede venir como JSON string con comillas
+      const cleanPhone = typeof rawPhone === 'string' ? rawPhone.replace(/"/g, '') : String(rawPhone);
+
+      set({ 
+        productos, 
+        categories, 
+        toppings, 
+        promociones: promoRes.data || [], 
+        whatsappPhone: cleanPhone,
+        isLoading: false 
+      });
 
     } catch (err: any) {
       console.error('Error fetching menu:', err);
@@ -109,20 +149,30 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     }
   },
 
-  calculateExtras: (selectedIds: string[]) => {
-    const { config, toppings } = get();
-    if (!config) return { extraCost: 0, extraIds: [], surchargeCost: 0, surchargeIds: [], surchargeDetails: [] };
+  getProductConfig: (productoId) => get().productos.find(p => p.id === productoId) ?? null,
+  
+  getCategoriesByProduct: (productoId) => get().categories.filter(c => c.productoId === productoId),
+  
+  getToppingsByProduct: (productoId) => {
+    const cats = get().getCategoriesByProduct(productoId).map(c => c.id);
+    return get().toppings.filter(t => cats.includes(t.categoryId));
+  },
 
-    const freeIds = selectedIds.slice(0, config.freeToppingsLimit);
+  calculateExtras: (productoId, selectedIds) => {
+    const { toppings } = get();
+    const producto = get().getProductConfig(productoId);
+    if (!producto) return { extraCost: 0, extraIds: [], surchargeCost: 0, surchargeIds: [], surchargeDetails: [] };
 
-    // Identificar proteínas dentro del pool libre (orden cronológico según selectedIds)
+    const freeToppingsLimit = producto.free_toppings_limit;
+    const freeIds = selectedIds.slice(0, freeToppingsLimit);
+
     const proteinsInFree = freeIds
       .map(id => toppings.find(to => to.id === id))
       .filter((t): t is NonNullable<typeof t> => !!t && t.exclusiveGroup === 'meat');
 
     let surchargeCost = 0;
     const surchargeIds: string[] = [];
-    const surchargeDetails: { id: string, amount: number, label: string }[] = [];
+    const surchargeDetails: { id: string; amount: number; label: string }[] = [];
 
     if (proteinsInFree.length > 0) {
       const primary = proteinsInFree[0];
@@ -131,7 +181,6 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       if (primary.surcharge > 0) {
         surchargeIds.push(primary.id);
         surchargeCost += primary.surcharge;
-        // Se omite agregar al surchargeDetails para ocultar el recargo de la proteína principal según elección del usuario (Opción A)
       }
 
       for (const sec of secondaries) {
@@ -143,23 +192,21 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       }
     }
 
-    // Caso normal: otros no-proteina con surcharge
     const otherSurcharges = freeIds
       .map(id => toppings.find(to => to.id === id))
       .filter((t): t is NonNullable<typeof t> => !!t && t.surcharge > 0 && t.exclusiveGroup !== 'meat');
-      
+
     for (const other of otherSurcharges) {
       surchargeIds.push(other.id);
       surchargeCost += other.surcharge;
       surchargeDetails.push({ id: other.id, amount: other.surcharge, label: `Recargo: ${other.label}` });
     }
 
-    // Extras: ingredientes más allá del límite libre
     let extraCost = 0;
     const extraIds: string[] = [];
-    
-    if (selectedIds.length > config.freeToppingsLimit) {
-      const eIds = selectedIds.slice(config.freeToppingsLimit);
+
+    if (selectedIds.length > freeToppingsLimit) {
+      const eIds = selectedIds.slice(freeToppingsLimit);
       eIds.forEach(id => {
         const t = toppings.find(to => to.id === id);
         if (t) {
@@ -172,41 +219,35 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     return { extraCost, extraIds, surchargeCost, surchargeIds, surchargeDetails };
   },
 
-  validateBurrito: (selectedIds: string[]) => {
-    const { config, categories, toppings } = get();
-    if (!config) return false;
+  validateItem: (productoId, selectedIds) => {
+    const producto = get().getProductConfig(productoId);
+    if (!producto) return false;
+    if (producto.tipo === 'simple') return true;
+    if (selectedIds.length < producto.min_toppings) return false;
 
-    if (selectedIds.length < config.minToppings) return false;
-    
-    for (const cat of categories) {
+    const cats = get().getCategoriesByProduct(productoId);
+    for (const cat of cats) {
       if (cat.required) {
-        const hasRequired = selectedIds.some(id => {
-          const topping = toppings.find(t => t.id === id);
-          return topping?.categoryId === cat.id;
-        });
+        const toppingsInCat = get().toppings.filter(t => t.categoryId === cat.id);
+        const hasRequired = selectedIds.some(id => toppingsInCat.some(t => t.id === id));
         if (!hasRequired) return false;
       }
     }
     return true;
   },
 
-  sortToppings: (toppingIds: string[]) => {
+  sortToppings: (toppingIds) => {
     const { toppings } = get();
-    
     const getPriority = (id: string): number => {
-      if (id === 'crema-agria') return 0; // Siempre primero
-      
+      if (id === 'crema-agria') return 0;
       const topping = toppings.find(t => t.id === id);
       if (!topping) return 4;
-      
-      if (topping.categoryId === 'base') return 1;
+      if (topping.categoryId?.includes('base')) return 1;
       if (id.includes('frejol')) return 2;
-      if (topping.categoryId === 'meat') return 3;
-      if (id === 'guacamole') return 5; // Siempre último
-      
-      return 4; // Demás ingredientes (queso, salsas, etc)
+      if (topping.categoryId?.includes('meat')) return 3;
+      if (id === 'guacamole') return 5;
+      return 4;
     };
-
     return [...toppingIds].sort((a, b) => getPriority(a) - getPriority(b) || a.localeCompare(b));
-  }
+  },
 }));
