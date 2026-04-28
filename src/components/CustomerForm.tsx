@@ -1,4 +1,5 @@
 import { useCartStore } from '@/store/cartStore';
+import { useMenuStore } from '@/store/menuStore';
 import { ClipboardList, Truck, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { DeliveryDay } from '@/types';
 
@@ -8,6 +9,7 @@ interface Props {
 
 export default function CustomerForm({ onNext }: Props) {
   const { customer, setCustomer } = useCartStore();
+  const deliveryDays = useMenuStore(s => s.deliveryDays);
 
   const isValid = customer.name.trim() !== '' && customer.address.trim() !== '' && customer.phone.trim() !== '' && customer.deliveryDay !== '';
 
@@ -69,7 +71,7 @@ export default function CustomerForm({ onNext }: Props) {
             <Calendar className="w-4 h-4" /> ¿Qué día te entregamos? (7 a 9 PM)
           </label>
           <div className="flex flex-col gap-2">
-            {(['Viernes', 'Sábado'] as DeliveryDay[]).map((day) => (
+            {deliveryDays.map((day) => (
               <button
                 key={day}
                 onClick={() => setCustomer({ deliveryDay: day })}

@@ -54,6 +54,7 @@ interface MenuState {
   toppings: Topping[];
   promociones: Promocion[];
   whatsappPhone: string;
+  deliveryDays: string[];
   isLoading: boolean;
   error: string | null;
   fetchMenu: () => Promise<void>;
@@ -80,6 +81,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
   toppings: [],
   promociones: [],
   whatsappPhone: '',
+  deliveryDays: [],
   isLoading: true,
   error: null,
 
@@ -134,12 +136,33 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       // El valor puede venir como JSON string con comillas
       const cleanPhone = typeof rawPhone === 'string' ? rawPhone.replace(/"/g, '') : String(rawPhone);
 
+      // Extraer dias_entrega
+      const rawDays = confRes.data?.find(c => c.clave === 'dias_entrega')?.valor;
+      let parsedDays: string[] = ['Viernes', 'Sábado']; // Default
+      if (rawDays) {
+        try {
+          parsedDays = typeof rawDays === 'string' ? JSON.parse(rawDays) : rawDays;
+          if (!Array.isArray(parsedDays)) parsedDays = ['Viernes', 'Sábado'];
+        } catch (e) {
+          console.error('Error parsing dias_entrega', e);
+        }
+      }
+
+      const sortDays = (days: string[]) => {
+        const dayOrder: Record<string, number> = {
+          'lunes': 1, 'martes': 2, 'miércoles': 3, 'miercoles': 3,
+          'jueves': 4, 'viernes': 5, 'sábado': 6, 'sabado': 6, 'domingo': 7
+        };
+        return [...days].sort((a, b) => (dayOrder[a.toLowerCase()] || 99) - (dayOrder[b.toLowerCase()] || 99));
+      };
+
       set({ 
         productos, 
         categories, 
         toppings, 
         promociones: promoRes.data || [], 
         whatsappPhone: cleanPhone,
+        deliveryDays: sortDays(parsedDays),
         isLoading: false 
       });
 

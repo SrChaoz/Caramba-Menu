@@ -23,7 +23,7 @@ export interface CartItem {
 export type ItemMode = 'same' | 'individual';
 
 // Información del cliente
-export type DeliveryDay = 'Viernes' | 'Sábado' | 'Domingo' | '';
+export type DeliveryDay = string;
 
 export interface CustomerInfo {
   name: string;
