@@ -40,11 +40,19 @@ export default function Home() {
   // ── Funciones de navegación ────────────────────────────────
 
   const handleNextFromQtyOrMenu = () => {
+    const { items } = useCartStore.getState();
     const groupsNeedingMode = getConfigurableGroupsNeedingMode();
+    
     if (groupsNeedingMode.length > 0) {
       setShowModeModal(true);
     } else {
-      setStep(2);
+      // Si el menú solo tiene 1 producto y es sencillo, las notas ya se llenaron en StepQty, saltamos Step 2
+      const isAllSimple = !items.some(i => i.tipo === 'configurable');
+      if (isSingleProductFlow && isAllSimple) {
+        setStep(3);
+      } else {
+        setStep(2);
+      }
     }
   };
 
@@ -61,7 +69,15 @@ export default function Home() {
   const handleNextFromCustomer = () => setStep(4);
 
   const handleBack = () => {
-    if (step > 1) setStep(step - 1);
+    if (step > 1) {
+      const { items } = useCartStore.getState();
+      const isAllSimple = !items.some(i => i.tipo === 'configurable');
+      if (step === 3 && isSingleProductFlow && isAllSimple) {
+        setStep(1); // Saltar Step 2 hacia atrás
+      } else {
+        setStep(step - 1);
+      }
+    }
   };
 
   // ── Progreso visual ────────────────────────────────────────

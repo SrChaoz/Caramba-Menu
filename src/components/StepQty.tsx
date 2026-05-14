@@ -15,7 +15,7 @@ interface Props {
  */
 export default function StepQty({ onNext }: Props) {
   const { productos } = useMenuStore();
-  const { setItemQuantity, getItemsByProduct, getTotalQuantity } = useCartStore();
+  const { setItemQuantity, getItemsByProduct, getTotalQuantity, setNota } = useCartStore();
 
   // Si solo hay un producto, usamos ese
   const producto = productos[0];
@@ -66,10 +66,34 @@ export default function StepQty({ onNext }: Props) {
         </button>
       </div>
 
+      {count > 0 && (
+        <div className="flex flex-col gap-3 mt-2 animate-fade-in">
+          <h3 className="text-caramba-text font-bold text-lg mb-1">
+            {count === 1 ? 'Anotación especial (Opcional)' : 'Anotaciones por plato (Opcional)'}
+          </h3>
+          {getItemsByProduct(producto.id).map((item, index) => (
+            <div key={item.instanceId} className="bg-caramba-surface/50 border border-caramba-border p-3 rounded-2xl flex gap-3 items-start transition-all focus-within:border-caramba-red focus-within:bg-caramba-surface">
+               {count > 1 && (
+                 <div className="bg-caramba-border/50 text-caramba-muted w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 mt-1">
+                   {index + 1}
+                 </div>
+               )}
+               <textarea 
+                  className="w-full bg-transparent text-white text-sm font-medium outline-none resize-none placeholder-caramba-muted/50 py-1"
+                  placeholder={count === 1 ? "Ej: Sin cebolla, extra picante..." : `Ej: El #${index + 1} sin cebolla, bien picante...`}
+                  rows={2}
+                  value={item.nota || ''}
+                  onChange={(e) => setNota(item.instanceId, e.target.value)}
+               />
+            </div>
+          ))}
+        </div>
+      )}
+
       <button
         onClick={onNext}
         disabled={totalQty === 0}
-        className="btn-primary mt-6 text-lg py-5 flex items-center justify-center gap-2"
+        className="btn-primary mt-4 text-lg py-5 flex items-center justify-center gap-2"
       >
         SIGUIENTE <ArrowRight className="w-5 h-5" />
       </button>
