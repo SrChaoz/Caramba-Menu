@@ -1,7 +1,7 @@
 import { useCartStore } from '@/store/cartStore';
 import { useMenuStore } from '@/store/menuStore';
 import { ClipboardList, Truck, ArrowRight, Calendar, CreditCard } from 'lucide-react';
-import { DeliveryDay } from '@/types';
+
 
 interface Props {
   onNext: () => void;

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Analytics } from "@vercel/analytics/next";
+import Image from 'next/image';
 import './globals.css';
 
 const inter = Inter({
@@ -34,8 +35,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false, // For mobile app feel
 };
-
-import Image from 'next/image';
 
 function Header() {
   return (

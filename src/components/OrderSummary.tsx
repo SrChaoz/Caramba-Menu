@@ -46,7 +46,7 @@ export default function OrderSummary({ onBack }: Props) {
     if (isMobile) {
       window.location.href = url;
     } else {
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
 
     // 2. Guardar en Supabase (Background)
