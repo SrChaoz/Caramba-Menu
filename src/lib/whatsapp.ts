@@ -35,7 +35,10 @@ export function buildWhatsAppURL(payload: any): string {
         text += `\n   ✨ Extras: ${extraLabels}`;
       }
     } else {
-      if (item.nota) text += `\n   Nota: ${item.nota}`;
+      if (item.productoIngredientesTexto) {
+        text += `\n   ${item.productoIngredientesTexto}`;
+      }
+      if (item.nota) text += `\n   📝 *Nota:* ${item.nota}`;
     }
     
     return text;

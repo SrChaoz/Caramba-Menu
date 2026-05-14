@@ -17,6 +17,7 @@ export interface Producto {
   tipo: 'configurable' | 'simple';
   emoji: string;
   imagen_url: string | null;
+  ingredientes_texto?: string;
 }
 
 export interface ToppingCategory {
@@ -109,6 +110,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
         tipo: (p.tipo ?? 'configurable') as 'configurable' | 'simple',
         emoji: p.emoji ?? '🍽️',
         imagen_url: p.imagen_url ?? null,
+        ingredientes_texto: p.ingredientes_texto ?? undefined,
       }));
 
       const categories: ToppingCategory[] = (catRes.data || []).map(c => ({

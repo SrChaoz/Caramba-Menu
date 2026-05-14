@@ -75,6 +75,9 @@ export default function OrderSummary({ onBack }: Props) {
             if (t) legacyExtras.push({ nombre: `[B${idx+1}] Extra: ${t.label}`, precio: t.price });
           });
         } else {
+          if (item.productoIngredientesTexto) {
+            legacyIngredients.push(item.productoIngredientesTexto);
+          }
           if (item.nota) legacyIngredients.push(`Nota: ${item.nota}`);
         }
       });
@@ -217,9 +220,22 @@ export default function OrderSummary({ onBack }: Props) {
                     )}
                   </>
                 ) : (
-                  <span className="text-caramba-muted text-sm italic">
-                    {item.nota || 'Sin notas adicionales'}
-                  </span>
+                  <div className="flex flex-col gap-1 mt-1">
+                    {item.productoIngredientesTexto && (
+                      <span className="text-white text-sm font-medium leading-relaxed">
+                        {item.productoIngredientesTexto}
+                      </span>
+                    )}
+                    {item.nota ? (
+                      <span className="text-caramba-red text-sm font-bold mt-1">
+                        📝 Nota: {item.nota}
+                      </span>
+                    ) : (
+                      <span className="text-caramba-muted text-sm italic opacity-50">
+                        Sin notas adicionales
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             );

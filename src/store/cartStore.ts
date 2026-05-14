@@ -36,12 +36,14 @@ const makeItem = (
   productoNombre: string,
   productoEmoji: string,
   tipo: ProductoTipo,
-  basePrice: number
+  basePrice: number,
+  productoIngredientesTexto?: string
 ): CartItem => ({
   instanceId: randomId(),
   productoId,
   productoNombre,
   productoEmoji,
+  productoIngredientesTexto,
   tipo,
   selectedToppings: [],
   nota: undefined,
@@ -86,7 +88,14 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     if (delta > 0) {
       // Agregar un ítem nuevo
-      const newItem = makeItem(productoId, producto.nombre, producto.emoji, producto.tipo, producto.precio_base);
+      const newItem = makeItem(
+        productoId, 
+        producto.nombre, 
+        producto.emoji, 
+        producto.tipo, 
+        producto.precio_base,
+        producto.ingredientes_texto
+      );
 
       // Si hay modo 'same', copiar los toppings del primer ítem del mismo grupo
       const firstOfGroup = existing[0];
