@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useMenuStore } from '@/store/menuStore';
 import { useCartStore } from '@/store/cartStore';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
   onNext: () => void;
@@ -11,6 +12,11 @@ interface Props {
 export default function StepMenu({ onNext }: Props) {
   const { productos, isLoading } = useMenuStore();
   const { getItemsByProduct, setItemQuantity, getTotalQuantity } = useCartStore();
+  const [expandedDesc, setExpandedDesc] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedDesc(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const totalQty = getTotalQuantity();
 
@@ -33,6 +39,8 @@ export default function StepMenu({ onNext }: Props) {
         const items = getItemsByProduct(producto.id);
         const count = items.length;
         const isSelected = count > 0;
+        const isExpanded = expandedDesc[producto.id];
+        const isLongText = producto.descripcion && producto.descripcion.length > 85;
 
         return (
           <div
@@ -84,9 +92,28 @@ export default function StepMenu({ onNext }: Props) {
 
               {/* Descripción */}
               {producto.descripcion && (
-                <p className="text-caramba-muted text-sm leading-snug line-clamp-2">
-                  {producto.descripcion}
-                </p>
+                <div className="flex flex-col items-start gap-1">
+                  <p 
+                    className={`text-caramba-muted text-sm leading-snug transition-all duration-300 ${
+                      isExpanded ? '' : 'line-clamp-2'
+                    }`}
+                    onClick={() => isLongText && toggleExpand(producto.id)}
+                  >
+                    {producto.descripcion}
+                  </p>
+                  {isLongText && (
+                    <button
+                      onClick={() => toggleExpand(producto.id)}
+                      className="text-caramba-red text-xs font-bold uppercase tracking-wider flex items-center gap-1 hover:text-white transition-colors py-1"
+                    >
+                      {isExpanded ? (
+                        <>Ver menos <ChevronUp className="w-3 h-3" /></>
+                      ) : (
+                        <>Ver más <ChevronDown className="w-3 h-3" /></>
+                      )}
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Precio + counter */}
