@@ -14,7 +14,8 @@ export interface Producto {
   free_toppings_limit: number;
   orden: number;
   activo: boolean;
-  tipo: 'configurable' | 'simple';
+  visible_web: boolean;
+  tipo: 'configurable' | 'simple' | 'bebida';
   emoji: string;
   imagen_url: string | null;
   ingredientes_texto?: string;
@@ -92,7 +93,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
 
       const [confRes, prodRes, catRes, topRes, promoRes] = await Promise.all([
         supabase.from('restaurante_config').select('*'),
-        supabase.from('menu_productos').select('*').eq('activo', true).order('orden'),
+        supabase.from('menu_productos').select('*').eq('activo', true).eq('visible_web', true).order('orden'),
         supabase.from('menu_categorias').select('*').order('orden'),
         supabase.from('menu_toppings').select('*').eq('disponible', true).order('orden'),
         supabase.from('promociones').select('*').eq('activo', true).order('condicion_valor', { ascending: false })
@@ -107,7 +108,8 @@ export const useMenuStore = create<MenuState>((set, get) => ({
         free_toppings_limit: Number(p.free_toppings_limit ?? 0),
         orden: Number(p.orden ?? 0),
         activo: p.activo,
-        tipo: (p.tipo ?? 'configurable') as 'configurable' | 'simple',
+        visible_web: p.visible_web ?? true,
+        tipo: (p.tipo ?? 'configurable') as 'configurable' | 'simple' | 'bebida',
         emoji: p.emoji ?? '🍽️',
         imagen_url: p.imagen_url ?? null,
         ingredientes_texto: p.ingredientes_texto ?? undefined,

@@ -5,7 +5,7 @@
 import type { Topping } from '@/store/menuStore';
 
 // Tipo de plato
-export type ProductoTipo = 'configurable' | 'simple';
+export type ProductoTipo = 'configurable' | 'simple' | 'bebida';
 
 export interface Producto {
   id: string;
